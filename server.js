@@ -1,14 +1,14 @@
-const WebSocket = require('ws');
+const express = require('express');
 const http = require('http');
+const WebSocket = require('ws');
+const path = require('path');
 
-// HTTPサーバーの作成
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end('WebSocket Server is running');
-});
-
-// WebSocketサーバーを作成
+const app = express();
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// === 静的ファイルを配信 ===
+app.use(express.static(path.join(__dirname)));
 
 let players = [];
 let readyPlayers = 0;
@@ -18,7 +18,6 @@ let answeredPlayers = [];
 let gameTimer;
 let questionTimerInterval;
 
-// クイズの問題
 const questions = [
     { question: "104", correctAnswer: "T" },
     { question: "374", correctAnswer: "B" },
@@ -28,7 +27,7 @@ const questions = [
     { question: "578", correctAnswer: "G" }
 ];
 
-// クライアント接続時
+// WebSocket接続
 wss.on('connection', (ws) => {
     console.log('New client connected');
 
@@ -39,7 +38,6 @@ wss.on('connection', (ws) => {
 
         if (msg.type === 'start') {
             readyPlayers++;
-
             if (readyPlayers === players.length) {
                 startQuiz();
             } else {
@@ -55,7 +53,6 @@ wss.on('connection', (ws) => {
     });
 });
 
-// クイズ開始
 function startQuiz() {
     gameStarted = true;
     readyPlayers = 0;
@@ -66,10 +63,7 @@ function startQuiz() {
         timeLeft--;
 
         players.forEach(player => {
-            player.ws.send(JSON.stringify({
-                type: 'gameTimer',
-                timeLeft
-            }));
+            player.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }));
         });
 
         if (timeLeft <= 0) {
@@ -81,22 +75,18 @@ function startQuiz() {
     sendNextQuestion();
 }
 
-// 問題送信
 function sendNextQuestion() {
     if (questionIndex < questions.length) {
         const question = questions[questionIndex];
-
         players.forEach(player => {
             player.ws.send(JSON.stringify({ type: 'question', question: question.question }));
         });
-
         startQuestionTimer();
     } else {
         endQuiz();
     }
 }
 
-// 回答処理
 function handleAnswer(ws, answer) {
     const player = players.find(p => p.ws === ws);
     if (!player || player.answered) return;
@@ -105,12 +95,10 @@ function handleAnswer(ws, answer) {
     if (answer.trim().toUpperCase() === correctAnswer) {
         player.answered = true;
         answeredPlayers.push(player);
-
         player.ws.send(JSON.stringify({ type: 'waiting', message: '次の問題をお待ちください...' }));
     }
 }
 
-// 問題タイマー管理
 function startQuestionTimer() {
     let timeLeft = 20;
 
@@ -118,29 +106,19 @@ function startQuestionTimer() {
         timeLeft--;
 
         players.forEach(player => {
-            player.ws.send(JSON.stringify({
-                type: 'questionTimer',
-                timeLeft
-            }));
+            player.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft }));
         });
 
         if (timeLeft <= 0) {
             clearInterval(questionTimerInterval);
             assignScores();
-
-            players.forEach(player => {
-                player.answered = false;
-            });
-
+            players.forEach(player => player.answered = false);
             questionIndex++;
-            setTimeout(() => {
-                sendNextQuestion();
-            }, 2000);
+            setTimeout(() => sendNextQuestion(), 2000);
         }
     }, 1000);
 }
 
-// スコア割り当て
 function assignScores() {
     const scores = [10, 7, 3, 1];
     for (let i = 0; i < answeredPlayers.length; i++) {
@@ -152,45 +130,33 @@ function assignScores() {
     answeredPlayers = [];
 }
 
-// クイズ終了
 function endQuiz() {
-    // スコア順にソート（降順）
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-
-    // 2位のスコアを取得（2人以上いる場合）
     const secondScore = sortedPlayers[1] ? sortedPlayers[1].score : null;
 
     if (secondScore !== null && secondScore < 41) {
-        // 2位と同じスコアを持っているプレイヤーを抽出
         const secondPlacePlayers = sortedPlayers.filter(p => p.score === secondScore);
-
         if (secondPlacePlayers.length > 1) {
-            // 複数いたらランダムで1人選んでスコアを41点に昇格
             const selectedPlayer = secondPlacePlayers[Math.floor(Math.random() * secondPlacePlayers.length)];
             selectedPlayer.score = 41;
         } else {
-            // 1人だけならその人のスコアを41点に
             secondPlacePlayers[0].score = 41;
         }
     }
 
-    // 各プレイヤーに結果を送信
     players.forEach(player => {
         let message = `クイズ終了！最終スコア: ${player.score}点`;
-
         if (player.score >= 41) {
             message += "\n第一ステージクリア、Bに移動してください";
         } else {
             message += "\nクリアならず、速やかに退場してください";
         }
-
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
 }
 
-
-
-// サーバー起動
-server.listen(8080, () => {
-    console.log('Server is listening on port 8080');
+// ポート設定（Render対応）
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

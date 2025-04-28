@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://localhost:8080');  // WebSocketサーバーの接続先
+const ws = new WebSocket('wss://quiz-zetubou.onrender.com');  // WebSocketサーバーの接続先
 
 // WebSocket接続時の処理
 ws.onopen = () => {
