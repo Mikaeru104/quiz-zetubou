@@ -132,6 +132,13 @@ function assignScores() {
 
 function endQuiz() {
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+
+    //  1位のプレイヤーに+50点
+    if (sortedPlayers[0]) {
+        sortedPlayers[0].score += 50;
+    }
+
+    // 2位のスコア確認（41点未満なら調整）
     const secondScore = sortedPlayers[1] ? sortedPlayers[1].score : null;
 
     if (secondScore !== null && secondScore < 41) {
@@ -144,6 +151,7 @@ function endQuiz() {
         }
     }
 
+    // 結果送信
     players.forEach(player => {
         let message = `クイズ終了！最終スコア: ${player.score}点`;
         if (player.score >= 41) {
@@ -154,6 +162,7 @@ function endQuiz() {
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
 }
+
 
 // ポート設定（Render対応）
 const PORT = process.env.PORT || 3000;
