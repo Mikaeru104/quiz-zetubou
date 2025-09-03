@@ -133,7 +133,7 @@ function assignScores() {
 function endQuiz() {
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
-    //  1位のプレイヤーに+50点
+    // 1位のプレイヤーに+50点
     if (sortedPlayers[0]) {
         sortedPlayers[0].score += 50;
     }
@@ -161,11 +161,26 @@ function endQuiz() {
         }
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
+
+    // ★ ゲームの状態を初期化
+    resetGameState();
 }
 
+function resetGameState() {
+    questionIndex = 0;
+    gameStarted = false;
+    answeredPlayers = [];
+    readyPlayers = 0;
+
+    players.forEach(player => {
+        player.score = 0;
+        player.answered = false;
+    });
+}
 
 // ポート設定（Render対応）
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
