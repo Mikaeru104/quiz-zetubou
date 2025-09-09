@@ -38,7 +38,7 @@ wss.on('connection', (ws) => {
 
         if (msg.type === 'start') {
             readyPlayers++;
-            if (readyPlayers === players.length) {
+            if (readyPlayers === players.length && !gameStarted) {
                 startQuiz();
             } else {
                 ws.send(JSON.stringify({ type: 'waiting', message: 'しばらくお待ちください...' }));
@@ -54,9 +54,19 @@ wss.on('connection', (ws) => {
 });
 
 function startQuiz() {
+    // ======= 🔄 スタート時にリセット =======
+    clearInterval(gameTimer);
+    clearInterval(questionTimerInterval);
+
+    questionIndex = 0;      // 問題を最初から
     gameStarted = true;
-    readyPlayers = 0;
     answeredPlayers = [];
+    readyPlayers = 0;
+
+    players.forEach(p => {
+        p.score = 0;        // スコアリセット
+        p.answered = false; // 回答状態リセット
+    });
 
     let timeLeft = 120;
     gameTimer = setInterval(() => {
@@ -140,7 +150,6 @@ function endQuiz() {
 
     // 2位のスコア確認（41点未満なら調整）
     const secondScore = sortedPlayers[1] ? sortedPlayers[1].score : null;
-
     if (secondScore !== null && secondScore < 41) {
         const secondPlacePlayers = sortedPlayers.filter(p => p.score === secondScore);
         if (secondPlacePlayers.length > 1) {
@@ -162,20 +171,10 @@ function endQuiz() {
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
 
-    // ★ ゲームの状態を初期化
-    resetGameState();
-}
-
-function resetGameState() {
-    questionIndex = 0;
+    // タイマーだけ停止して終了、リセットは startQuiz() で行う
+    clearInterval(gameTimer);
+    clearInterval(questionTimerInterval);
     gameStarted = false;
-    answeredPlayers = [];
-    readyPlayers = 0;
-
-    players.forEach(player => {
-        player.score = 0;
-        player.answered = false;
-    });
 }
 
 // ポート設定（Render対応）
@@ -183,4 +182,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
 
