@@ -148,15 +148,10 @@ function endQuiz() {
         sortedPlayers[0].score += 50;
     }
 
-    // 2位のスコア確認（41点未満なら調整）
-    const secondScore = sortedPlayers[1] ? sortedPlayers[1].score : null;
-    if (secondScore !== null && secondScore < 41) {
-        const secondPlacePlayers = sortedPlayers.filter(p => p.score === secondScore);
-        if (secondPlacePlayers.length > 1) {
-            const selectedPlayer = secondPlacePlayers[Math.floor(Math.random() * secondPlacePlayers.length)];
-            selectedPlayer.score = 41;
-        } else {
-            secondPlacePlayers[0].score = 41;
+    // 2位と3位をチェックして41点未満なら補正
+    for (let i = 1; i <= 2; i++) {
+        if (sortedPlayers[i] && sortedPlayers[i].score < 41) {
+            sortedPlayers[i].score = 41;
         }
     }
 
@@ -171,7 +166,7 @@ function endQuiz() {
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
 
-    // タイマーだけ停止して終了、リセットは startQuiz() で行う
+    // タイマー停止、リセットは startQuiz() に任せる
     clearInterval(gameTimer);
     clearInterval(questionTimerInterval);
     gameStarted = false;
@@ -182,5 +177,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
 
 
