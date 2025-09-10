@@ -14,21 +14,32 @@ ws.onmessage = (event) => {
         document.getElementById('question').innerText = `問題: ${message.question}`;
         document.getElementById('waitingMessage').innerText = "";  // 問題が表示されたら待機メッセージを消す
         document.getElementById('timer').innerText = 20;  // 問題のタイマーを20秒にリセット
+
+        // 🔽 最初の問題が来たらスタートボタンを消す
+        document.getElementById('startBtn').style.display = "none";
+
     } else if (message.type === 'gameTimer') {
         // ゲーム全体タイマーの残り時間を表示
         document.getElementById('gameTimer').innerText = `残り時間: ${message.timeLeft}秒`;
+
     } else if (message.type === 'questionTimer') {
         // 各問題のタイマーの残り時間を表示
         document.getElementById('timer').innerText = message.timeLeft;
+
     } else if (message.type === 'end') {
         // クイズ終了時のメッセージ
         document.getElementById('question').innerText = message.message;
-        document.getElementById('timer').innerText = "";  // タイマーをクリア
+        document.getElementById('timer').innerText = "";
+
+        // 🔽 ゲーム終了後にスタートボタンを再表示
+        document.getElementById('startBtn').style.display = "inline-block";
+
     } else if (message.type === 'score') {
         // スコアの表示
         document.getElementById('score').innerText = `スコア: ${message.score}`;
+
     } else if (message.type === 'waiting') {
-        // 正解したプレイヤーに対してだけ表示される待機メッセージ
+        // 正解したプレイヤーにだけ表示される待機メッセージ
         document.getElementById('waitingMessage').innerText = message.message;
     }
 };
@@ -38,6 +49,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
     ws.send(JSON.stringify({ type: 'start' }));  // サーバーに「start」メッセージを送信
     document.getElementById('waitingMessage').innerText = "準備中...";
     document.getElementById('question').innerText = "クイズ中...";
+    document.getElementById('startBtn').style.display = "none"; // 🔽 スタート押したら隠す
 });
 
 // 回答入力処理
