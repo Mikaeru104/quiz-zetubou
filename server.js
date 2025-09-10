@@ -31,17 +31,24 @@ const questions = [
 wss.on('connection', (ws) => {
     console.log('New client connected');
 
-    players.push({ ws, score: 0, answered: false });
+    players.push({ ws, score: 0, answered: false, ready: false });
 
     ws.on('message', (message) => {
         const msg = JSON.parse(message);
 
         if (msg.type === 'start') {
-            readyPlayers++;
-            if (readyPlayers === players.length && !gameStarted) {
+            // ✅ スタート押したら準備完了
+            const player = players.find(p => p.ws === ws);
+            if (player) player.ready = true;
+
+            // ✅ 準備完了人数をカウント
+            readyPlayers = players.filter(p => p.ready).length;
+
+            // ✅ 全員押したら強制的に新ゲーム開始
+            if (readyPlayers === players.length) {
                 startQuiz();
             } else {
-                ws.send(JSON.stringify({ type: 'waiting', message: 'しばらくお待ちください...' }));
+                ws.send(JSON.stringify({ type: 'waiting', message: '他のプレイヤーを待っています...' }));
             }
         } else if (msg.type === 'answer') {
             handleAnswer(ws, msg.answer);
@@ -54,20 +61,22 @@ wss.on('connection', (ws) => {
 });
 
 function startQuiz() {
-    // ======= 🔄 スタート時にリセット =======
+    // ======= 🔄 完全リセット =======
     clearInterval(gameTimer);
     clearInterval(questionTimerInterval);
 
-    questionIndex = 0;      // 問題を最初から
+    questionIndex = 0;
     gameStarted = true;
     answeredPlayers = [];
     readyPlayers = 0;
 
     players.forEach(p => {
-        p.score = 0;        // スコアリセット
-        p.answered = false; // 回答状態リセット
+        p.score = 0;
+        p.answered = false;
+        p.ready = false; // ✅ 次回の準備状態をリセット
     });
 
+    // 120秒のゲーム全体タイマー開始
     let timeLeft = 120;
     gameTimer = setInterval(() => {
         timeLeft--;
@@ -148,7 +157,7 @@ function endQuiz() {
         sortedPlayers[0].score += 50;
     }
 
-    // 2位と3位をチェックして41点未満なら補正
+    // 2位と3位をチェックして 41 点未満なら補正
     for (let i = 1; i <= 2; i++) {
         if (sortedPlayers[i] && sortedPlayers[i].score < 41) {
             sortedPlayers[i].score = 41;
@@ -166,17 +175,18 @@ function endQuiz() {
         player.ws.send(JSON.stringify({ type: 'end', message }));
     });
 
-    // タイマー停止、リセットは startQuiz() に任せる
     clearInterval(gameTimer);
     clearInterval(questionTimerInterval);
     gameStarted = false;
 }
 
-// ポート設定（Render対応）
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+    
+      
 
 
 
