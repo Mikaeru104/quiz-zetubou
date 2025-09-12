@@ -24,6 +24,13 @@ const stage2Questions = [
     { question: "四桁を教えてください", correctAnswers: ["4768", "3229", "5610"] }
 ];
 
+const stage3Questions = [
+    { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
+    { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
+    { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
+    { question: "最後の確認問題：適当に入力してください", correctAnswer: "OK" } // ダミーで4問目
+];
+
 const requiredPlayersStage1 = 4;
 const requiredPlayersStage2 = 3;
 
@@ -35,11 +42,13 @@ wss.on('connection', (ws) => {
         ws,
         scoreStage1: 0,
         scoreStage2: 0,
+        scoreStage3: 0,
         answered: false,
         stage: 1,
         ready: false,
         handleAnswer: null,
-        clearedStage1: false  // 第一ステージクリアフラグ
+        clearedStage1: false,
+        clearedStage2: false
     });
 
     ws.on('message', (message) => {
@@ -60,7 +69,6 @@ wss.on('connection', (ws) => {
             }
 
             if (msg.stage === 2) {
-                // 第二ステージは第一ステージクリア者のみ参加
                 const clearedPlayers = players.filter(p => p.clearedStage1);
                 const readyCount = clearedPlayers.filter(p => p.ready).length;
 
@@ -75,6 +83,14 @@ wss.on('connection', (ws) => {
                     message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人のクリア者を待っています...`
                 }));
             }
+
+            if (msg.stage === 3) {
+                if (!player.clearedStage2) {
+                    ws.send(JSON.stringify({ type: 'waiting', message: "あなたは第二ステージをクリアしていないため第三ステージに参加できません" }));
+                    return;
+                }
+                startStage3([player]); // 第三ステージは一人だけ
+            }
         } else if (msg.type === 'answer') {
             if (player.handleAnswer) player.handleAnswer(player, msg.answer);
         }
@@ -86,6 +102,7 @@ wss.on('connection', (ws) => {
 
     ws.send(JSON.stringify({ type: 'connected', message: 'サーバー接続成功！' }));
 });
+
 
 // ======================
 // 第一ステージ
@@ -167,8 +184,6 @@ function endStage1(stagePlayers) {
         if (p.scoreStage1 >= 41) {
             msg += "\n第一ステージクリア、Bに移動してください";
             p.clearedStage1 = true;
-
-            // ← クリア者だけに第二ステージ専用ボタンを出すよう通知
             p.ws.send(JSON.stringify({ type: 'unlockStage2' }));
         } else {
             msg += "\nクリアならず、速やかに退場してください";
@@ -225,8 +240,85 @@ function endStage2(stagePlayers, answeredPlayers) {
     stagePlayers.forEach(p => {
         if (!answeredPlayers.includes(p)) p.scoreStage2 = 0;
         let msg = `第二ステージ終了！スコア: ${p.scoreStage2}点`;
-        if (p.scoreStage2 >= 100) msg += "\n第二ステージクリア！";
-        else msg += "\nクリアならず";
+        if (p.scoreStage2 >= 100) {
+            msg += "\n第二ステージクリア！第三ステージへ進めます";
+            p.clearedStage2 = true;
+            p.ws.send(JSON.stringify({ type: 'unlockStage3' }));
+        } else {
+            msg += "\nクリアならず";
+            p.clearedStage2 = false;
+        }
+        p.ws.send(JSON.stringify({ type: 'end', message: msg }));
+    });
+}
+
+
+// ======================
+// 第三ステージ（イライラ本）
+// ======================
+function startStage3(stagePlayers) {
+    stagePlayers.forEach(p => { p.scoreStage3 = 0; p.answered = false; p.ready = false; });
+    let questionIndex = 0;
+    let timeLeft = 120;
+
+    const gameTimer = setInterval(() => {
+        timeLeft--;
+        stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
+        if (timeLeft <= 0) {
+            clearInterval(gameTimer);
+            endStage3(stagePlayers);
+        }
+    }, 1000);
+
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本' })));
+
+    function sendNextQuestion() {
+        if (questionIndex < stage3Questions.length) {
+            const question = stage3Questions[questionIndex];
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question })));
+            startQuestionTimer(question);
+        } else {
+            endStage3(stagePlayers);
+        }
+    }
+
+    function startQuestionTimer(question) {
+        let qTime = 40;
+        const questionTimer = setInterval(() => {
+            qTime--;
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime })));
+            if (qTime <= 0) {
+                clearInterval(questionTimer);
+                questionIndex++;
+                setTimeout(sendNextQuestion, 1000);
+            }
+        }, 1000);
+
+        stagePlayers.forEach(p => p.handleAnswer = (player, answer) => {
+            if (player.answered) return;
+            if (answer.trim() === question.correctAnswer) {
+                player.scoreStage3 += 30;
+                player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
+            }
+            player.answered = true;
+            clearInterval(questionTimer);
+            questionIndex++;
+            setTimeout(sendNextQuestion, 1000);
+        });
+    }
+
+    stagePlayers.forEach(p => p.answered = false);
+    sendNextQuestion();
+}
+
+function endStage3(stagePlayers) {
+    stagePlayers.forEach(p => {
+        let msg = `第三ステージ終了！スコア: ${p.scoreStage3}点`;
+        if (p.scoreStage3 >= 80) {
+            msg += "\nイライラ本クリア！";
+        } else {
+            msg += "\nクリアならず";
+        }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
