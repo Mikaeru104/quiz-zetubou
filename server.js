@@ -7,14 +7,10 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// === 静的ファイル配信 ===
 app.use(express.static(path.join(__dirname)));
 
 let players = [];
 
-// ======================
-// 第一ステージ「かくれんぼ」問題
-// ======================
 const stage1Questions = [
     { question: "104", correctAnswer: "T" },
     { question: "374", correctAnswer: "B" },
@@ -24,29 +20,24 @@ const stage1Questions = [
     { question: "578", correctAnswer: "G" }
 ];
 
-// 第二ステージ「絵しりとり」問題
 const stage2Questions = [
     { question: "四桁を教えてください", correctAnswers: ["4768", "3229", "5610"] }
 ];
 
-// ======================
-// 人数固定設定
-// ======================
 const requiredPlayersStage1 = 4;
 const requiredPlayersStage2 = 3;
 
-// ======================
-// WebSocket接続
-// ======================
 wss.on('connection', (ws) => {
-    console.log('New client connected');
+    console.log('新しいクライアント接続');
+
     players.push({
         ws,
         scoreStage1: 0,
         scoreStage2: 0,
         answered: false,
-        stage: 1, // 初期ステージ
-        ready: false
+        stage: 1,
+        ready: false,
+        handleAnswer: null
     });
 
     ws.on('message', (message) => {
@@ -55,7 +46,6 @@ wss.on('connection', (ws) => {
         if (!player) return;
 
         if (msg.type === 'start') {
-            // スタートボタン押下
             player.ready = true;
             player.stage = msg.stage;
 
@@ -72,29 +62,26 @@ wss.on('connection', (ws) => {
                 else ws.send(JSON.stringify({ type: 'waiting', message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人を待っています...` }));
             }
         } else if (msg.type === 'answer') {
-            handleAnswer(player, msg.answer);
+            if (player.handleAnswer) player.handleAnswer(player, msg.answer);
         }
     });
 
     ws.on('close', () => {
         players = players.filter(p => p.ws !== ws);
     });
+
+    ws.send(JSON.stringify({ type: 'connected', message: 'サーバー接続成功！' }));
 });
 
 // ======================
 // 第一ステージ
 // ======================
 function startStage1(stagePlayers) {
-    stagePlayers.forEach(p => {
-        p.scoreStage1 = 0;
-        p.answered = false;
-        p.ready = false;
-    });
-
+    stagePlayers.forEach(p => { p.scoreStage1 = 0; p.answered = false; p.ready = false; });
     let questionIndex = 0;
     let answeredPlayers = [];
-
     let timeLeft = 120;
+
     const gameTimer = setInterval(() => {
         timeLeft--;
         stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
@@ -107,7 +94,7 @@ function startStage1(stagePlayers) {
     function sendNextQuestion() {
         if (questionIndex < stage1Questions.length) {
             const question = stage1Questions[questionIndex];
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question })));
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question, stageName: "かくれんぼ" })));
             startQuestionTimer(question);
         } else {
             endStage1(stagePlayers);
@@ -150,25 +137,22 @@ function startStage1(stagePlayers) {
         answeredPlayers = [];
     }
 
-    sendNextQuestion();
     stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
+    sendNextQuestion();
 }
 
-// ======================
-// 第一ステージ終了
-// ======================
 function endStage1(stagePlayers) {
     const sorted = [...stagePlayers].sort((a, b) => b.scoreStage1 - a.scoreStage1);
-    if (sorted[0]) sorted[0].scoreStage1 += 50; // 1位 +50
+    if (sorted[0]) sorted[0].scoreStage1 += 50;
     for (let i = 1; i <= 2; i++) {
         if (sorted[i] && sorted[i].scoreStage1 < 41) sorted[i].scoreStage1 = 41;
     }
 
     stagePlayers.forEach(p => {
-        let message = `第一ステージ終了！最終スコア: ${p.scoreStage1}点`;
-        if (p.scoreStage1 >= 41) message += "\n第一ステージクリア、Bに移動してください";
-        else message += "\nクリアならず、速やかに退場してください";
-        p.ws.send(JSON.stringify({ type: 'end', message }));
+        let msg = `第一ステージ終了！最終スコア: ${p.scoreStage1}点`;
+        if (p.scoreStage1 >= 41) msg += "\n第一ステージクリア、Bに移動してください";
+        else msg += "\nクリアならず、速やかに退場してください";
+        p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
 
@@ -176,12 +160,7 @@ function endStage1(stagePlayers) {
 // 第二ステージ
 // ======================
 function startStage2(stagePlayers) {
-    stagePlayers.forEach(p => {
-        p.scoreStage2 = 0;
-        p.answered = false;
-        p.ready = false;
-    });
-
+    stagePlayers.forEach(p => { p.scoreStage2 = 0; p.answered = false; p.ready = false; });
     const question = stage2Questions[0];
     let answeredPlayers = [];
     let timeLeft = 120;
@@ -214,9 +193,6 @@ function startStage2(stagePlayers) {
     stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
 }
 
-// ======================
-// 第二ステージ終了
-// ======================
 function endStage2(stagePlayers, answeredPlayers) {
     const sorted = [...answeredPlayers];
     if (sorted[0]) sorted[0].scoreStage2 = 100;
@@ -232,19 +208,5 @@ function endStage2(stagePlayers, answeredPlayers) {
     });
 }
 
-// ======================
-// 回答ハンドラ共通
-// ======================
-function handleAnswer(player, answer) {
-    if (!player || !player.handleAnswer) return;
-    player.handleAnswer(player, answer);
-}
-
-// ======================
-// ポート
-// ======================
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
