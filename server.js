@@ -27,6 +27,7 @@ const stage2Questions = [
 const requiredPlayersStage1 = 4;
 const requiredPlayersStage2 = 3;
 
+// WebSocket接続
 wss.on('connection', (ws) => {
     console.log('新しいクライアント接続');
 
