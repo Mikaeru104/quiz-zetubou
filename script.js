@@ -3,9 +3,9 @@ const ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${locatio
 let currentStage = 1;
 let currentQuestionIndex = 0;
 
-ws.onopen = ()=>{ console.log('Connected'); };
+ws.onopen = () => console.log('Connected');
 
-ws.onmessage = (event)=>{
+ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
     switch(msg.type){
@@ -15,16 +15,12 @@ ws.onmessage = (event)=>{
 
         case 'question':
             document.getElementById('question').innerText = `問題: ${msg.question}`;
-            document.getElementById('timer').innerText = msg.timeLeft || 20;
-            if(typeof msg.index!=='undefined') currentQuestionIndex=msg.index;
+            document.getElementById('timer').innerText = msg.timeLeft ? `問題残り時間: ${msg.timeLeft}秒` : '';
+            if(typeof msg.index !== 'undefined') currentQuestionIndex = msg.index;
             break;
 
         case 'gameTimer':
             document.getElementById('gameTimer').innerText = `残り時間: ${msg.timeLeft}秒`;
-            break;
-
-        case 'questionTimer':
-            document.getElementById('timer').innerText = `問題残り時間: ${msg.timeLeft}秒`;
             break;
 
         case 'score':
@@ -32,7 +28,7 @@ ws.onmessage = (event)=>{
             break;
 
         case 'waiting':
-            document.getElementById('waitingMessage').innerText = msg.message;
+            // 待機表示は不要にする
             break;
 
         case 'end':
@@ -74,11 +70,12 @@ document.getElementById('startBtnStage4').addEventListener('click', ()=>{ startS
 
 function startStage(stage){
     ws.send(JSON.stringify({ type:'start', stage }));
-    currentStage=stage;
-    currentQuestionIndex=0;
-    document.getElementById('waitingMessage').innerText="準備中...";
-    document.getElementById('question').innerText="クイズ中...";
-    document.getElementById('score').innerText="";
+    currentStage = stage;
+    currentQuestionIndex = 0;
+    // 「準備中…」表示を削除
+    document.getElementById('waitingMessage').innerText = "";
+    document.getElementById('question').innerText = "クイズ開始！";
+    document.getElementById('score').innerText = "";
 }
 
 // 回答ボタン
@@ -87,8 +84,8 @@ document.getElementById('answerBtn').addEventListener('click', ()=>{
     if(!ws || ws.readyState!==WebSocket.OPEN){ alert('WebSocket未接続'); return; }
 
     let sendAnswer = answer;
-    if(currentStage===4) sendAnswer="CLEAR";
+    if(currentStage===4) sendAnswer = "CLEAR";
 
     ws.send(JSON.stringify({ type:'answer', answer:sendAnswer, stage:currentStage, index:currentQuestionIndex }));
-    document.getElementById('answerInput').value="";
+    document.getElementById('answerInput').value = "";
 });
