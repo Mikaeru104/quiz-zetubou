@@ -1,92 +1,56 @@
-const ws = new WebSocket('wss://quiz-zetubou.onrender.com'); // WebSocketサーバー接続先
+const ws = new WebSocket(`ws://${location.host}`);
 
-// 現在のステージ 1=かくれんぼ, 2=絵しりとり
-let currentStage = 1;
-
-const stageTitle = document.querySelector("h1");
-const waitingMessage = document.getElementById("waitingMessage");
-const questionDiv = document.getElementById("question");
-const timerDiv = document.getElementById("timer");
-const gameTimerDiv = document.getElementById("gameTimer");
-const scoreDiv = document.getElementById("score");
-const startBtn = document.getElementById("startBtn");
-const answerInput = document.getElementById("answerInput");
-const answerBtn = document.getElementById("answerBtn");
-
-// ======================
-// WebSocket接続
-// ======================
 ws.onopen = () => {
     console.log('Connected to WebSocket');
-    waitingMessage.innerText = "サーバーに接続されました";
+    document.getElementById('waitingMessage').innerText = "接続成功！";
 };
 
-ws.onclose = () => {
-    console.log('WebSocket切断');
-    waitingMessage.innerText = "サーバーとの接続が切れました";
-};
-
-ws.onerror = (err) => {
-    console.error("WebSocketエラー:", err);
-    waitingMessage.innerText = "サーバーに接続できません";
-};
-
-// ======================
-// メッセージ受信
-// ======================
 ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
 
-    switch (message.type) {
-        case 'stage':
-            stageTitle.innerText = message.name;
-            break;
-        case 'waiting':
-            waitingMessage.innerText = message.message;
+    switch(message.type){
+        case 'connected':
+            document.getElementById('waitingMessage').innerText = message.message;
             break;
         case 'question':
-            questionDiv.innerText = `問題: ${message.question}`;
-            timerDiv.innerText = "20"; // 問題タイマー初期化
-            waitingMessage.innerText = "";
-            break;
-        case 'questionTimer':
-            timerDiv.innerText = message.timeLeft;
+            document.getElementById('question').innerText = `問題: ${message.question}`;
+            document.getElementById('timer').innerText = 20;
+            document.getElementById('waitingMessage').innerText = "";
             break;
         case 'gameTimer':
-            gameTimerDiv.innerText = `残り時間: ${message.timeLeft}秒`;
+            document.getElementById('gameTimer').innerText = `残り時間: ${message.timeLeft}秒`;
             break;
-        case 'score':
-            scoreDiv.innerText = `スコア: ${message.score}`;
+        case 'questionTimer':
+            document.getElementById('timer').innerText = message.timeLeft;
             break;
         case 'end':
-            questionDiv.innerText = message.message;
-            timerDiv.innerText = "";
-            startBtn.style.display = "inline-block"; // 終了後にスタート再表示
+            document.getElementById('question').innerText = message.message;
+            document.getElementById('timer').innerText = "";
+            document.getElementById('startBtn').style.display = "inline-block";
             break;
-        case 'info':
-            waitingMessage.innerText = message.message;
+        case 'score':
+            document.getElementById('score').innerText = `スコア: ${message.score}`;
             break;
-        default:
-            console.log("不明なメッセージ:", message);
+        case 'waiting':
+            document.getElementById('waitingMessage').innerText = message.message;
+            break;
+        case 'stage':
+            document.querySelector('h1').innerText = message.name;
+            break;
     }
 };
 
-// ======================
-// スタートボタン
-// ======================
-startBtn.addEventListener('click', () => {
-    ws.send(JSON.stringify({ type: 'start', stage: currentStage }));
-    waitingMessage.innerText = "準備中...";
-    questionDiv.innerText = "ゲーム開始準備中...";
-    startBtn.style.display = "none"; // 押したら消す
+// スタートボタン（自分だけに準備完了表示）
+document.getElementById('startBtn').addEventListener('click', () => {
+    const stage = document.querySelector('h1').innerText === "かくれんぼ" ? 1 : 2;
+    ws.send(JSON.stringify({ type: 'start', stage }));
+    document.getElementById('waitingMessage').innerText = "準備中...";
+    document.getElementById('question').innerText = "クイズ中...";
+    document.getElementById('startBtn').style.display = "none";
 });
 
-// ======================
 // 回答ボタン
-// ======================
-answerBtn.addEventListener('click', () => {
-    const answer = answerInput.value.trim();
-    if (!answer) return;
-    ws.send(JSON.stringify({ type: 'answer', answer: answer, stage: currentStage }));
-    answerInput.value = "";
+document.getElementById('answerBtn').addEventListener('click', () => {
+    const answer = document.getElementById('answerInput').value;
+    ws.send(JSON.stringify({ type: 'answer', answer }));
 });
