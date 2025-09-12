@@ -266,7 +266,6 @@ function startStage3(stagePlayers) {
         { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
         { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
         { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
-        { question: "最終問題！「本」が乗っているページの番号を答えてください", correctAnswer: "400" }
     ];
 
     let questionIndex = 0;
