@@ -359,6 +359,60 @@ function endStage3(stagePlayers) {
     });
 }
 
+// ======================
+// 第四ステージ (絶棒)
+// ======================
+function startStage4(stagePlayers) {
+    stagePlayers.forEach(p => { 
+        p.scoreStage4 = 0; 
+        p.ready = false; 
+        p.answered = false; 
+    });
+
+    let timeLeft = 180;
+
+    // ステージ名送信
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: '絶棒', stage: 4 })));
+
+    // 「ゲームクリアボタンを表示」通知
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'showClearButton' })));
+
+    // 制限時間タイマー
+    const gameTimer = setInterval(() => {
+        timeLeft--;
+        stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
+        if (timeLeft <= 0) {
+            clearInterval(gameTimer);
+            endStage4(stagePlayers);
+        }
+    }, 1000);
+
+    // 回答（クリアボタン押下）処理
+    stagePlayers.forEach(p => {
+        p.handleAnswer = (player, answer) => {
+            if (answer === "CLEAR" && !player.answered) {
+                player.scoreStage4 += 100;
+                player.answered = true;
+
+                // 即終了
+                clearInterval(gameTimer);
+                endStage4(stagePlayers);
+            }
+        };
+    });
+}
+
+function endStage4(stagePlayers) {
+    stagePlayers.forEach(p => {
+        let msg = `第四ステージ終了！スコア: ${p.scoreStage4}点`;
+        if (p.scoreStage4 >= 100) {
+            msg += "\n第四ステージクリア！おめでとう！";
+        } else {
+            msg += "\nクリアならず";
+        }
+        p.ws.send(JSON.stringify({ type: 'end', message: msg }));
+    });
+}
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
