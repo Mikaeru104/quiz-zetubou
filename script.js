@@ -1,12 +1,7 @@
-// ======================
-// WebSocket URL設定
-// ======================
-// ローカルテストは ws://localhost:3000
-// 本番サーバーは wss://your-app.onrender.com に変更
-const WS_URL = window.location.hostname === "localhost" ? "ws://localhost:3000" : "wss://your-app.onrender.com";
-const ws = new WebSocket(WS_URL);
+const ws = new WebSocket('wss://quiz-zetubou.onrender.com'); // WebSocketサーバー接続先
 
-let currentStage = 1; // 1:かくれんぼ, 2:絵しりとり
+// 現在のステージ 1=かくれんぼ, 2=絵しりとり
+let currentStage = 1;
 
 const stageTitle = document.querySelector("h1");
 const waitingMessage = document.getElementById("waitingMessage");
@@ -19,18 +14,15 @@ const answerInput = document.getElementById("answerInput");
 const answerBtn = document.getElementById("answerBtn");
 
 // ======================
-// WebSocket 接続
+// WebSocket接続
 // ======================
 ws.onopen = () => {
-    console.log("WebSocket接続成功");
+    console.log('Connected to WebSocket');
     waitingMessage.innerText = "サーバーに接続されました";
-
-    // ステージに参加
-    ws.send(JSON.stringify({ type: "join", stage: currentStage }));
 };
 
 ws.onclose = () => {
-    console.log("WebSocket切断");
+    console.log('WebSocket切断');
     waitingMessage.innerText = "サーバーとの接続が切れました";
 };
 
@@ -43,58 +35,58 @@ ws.onerror = (err) => {
 // メッセージ受信
 // ======================
 ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
+    const message = JSON.parse(event.data);
 
-    switch (msg.type) {
-        case "stage":
-            stageTitle.innerText = msg.name;
+    switch (message.type) {
+        case 'stage':
+            stageTitle.innerText = message.name;
             break;
-        case "waiting":
-            waitingMessage.innerText = msg.message;
+        case 'waiting':
+            waitingMessage.innerText = message.message;
             break;
-        case "question":
-            questionDiv.innerText = `問題: ${msg.question}`;
-            timerDiv.innerText = "20"; // 問題タイマー初期値
+        case 'question':
+            questionDiv.innerText = `問題: ${message.question}`;
+            timerDiv.innerText = "20"; // 問題タイマー初期化
             waitingMessage.innerText = "";
             break;
-        case "questionTimer":
-            timerDiv.innerText = msg.timeLeft;
+        case 'questionTimer':
+            timerDiv.innerText = message.timeLeft;
             break;
-        case "gameTimer":
-            gameTimerDiv.innerText = `残り時間: ${msg.timeLeft}秒`;
+        case 'gameTimer':
+            gameTimerDiv.innerText = `残り時間: ${message.timeLeft}秒`;
             break;
-        case "score":
-            scoreDiv.innerText = `スコア: ${msg.score}`;
+        case 'score':
+            scoreDiv.innerText = `スコア: ${message.score}`;
             break;
-        case "end":
-            questionDiv.innerText = msg.message;
+        case 'end':
+            questionDiv.innerText = message.message;
             timerDiv.innerText = "";
-            startBtn.style.display = "inline-block"; // ゲーム終了後にスタート再表示
+            startBtn.style.display = "inline-block"; // 終了後にスタート再表示
             break;
-        case "info":
-            waitingMessage.innerText = msg.message;
+        case 'info':
+            waitingMessage.innerText = message.message;
             break;
         default:
-            console.log("不明なメッセージ:", msg);
+            console.log("不明なメッセージ:", message);
     }
 };
 
 // ======================
 // スタートボタン
 // ======================
-startBtn.addEventListener("click", () => {
-    ws.send(JSON.stringify({ type: "start", stage: currentStage }));
+startBtn.addEventListener('click', () => {
+    ws.send(JSON.stringify({ type: 'start', stage: currentStage }));
     waitingMessage.innerText = "準備中...";
     questionDiv.innerText = "ゲーム開始準備中...";
-    startBtn.style.display = "none"; // 押したら非表示
+    startBtn.style.display = "none"; // 押したら消す
 });
 
 // ======================
 // 回答ボタン
 // ======================
-answerBtn.addEventListener("click", () => {
+answerBtn.addEventListener('click', () => {
     const answer = answerInput.value.trim();
     if (!answer) return;
-    ws.send(JSON.stringify({ type: "answer", answer: answer, stage: currentStage }));
+    ws.send(JSON.stringify({ type: 'answer', answer: answer, stage: currentStage }));
     answerInput.value = "";
 });
