@@ -167,6 +167,9 @@ function endStage1(stagePlayers) {
         if (p.scoreStage1 >= 41) {
             msg += "\n第一ステージクリア、Bに移動してください";
             p.clearedStage1 = true;
+
+            // ← クリア者だけに第二ステージ専用ボタンを出すよう通知
+            p.ws.send(JSON.stringify({ type: 'unlockStage2' }));
         } else {
             msg += "\nクリアならず、速やかに退場してください";
             p.clearedStage1 = false;
@@ -174,6 +177,7 @@ function endStage1(stagePlayers) {
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
+
 
 // ======================
 // 第二ステージ
