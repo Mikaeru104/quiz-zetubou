@@ -3,52 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>クイズアプリ</title>
+    <title>ステージ制クイズゲーム</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #waitingMessage { color: red; font-weight: bold; }
-        #gameTimer { position: fixed; top: 10px; right: 10px; font-size: 24px; font-weight: bold; }
-        #question { margin-top: 50px; font-size: 24px; font-weight: bold; }
-        #timer { font-size: 20px; margin-top: 20px; }
-        #score { font-size: 20px; margin-top: 20px; }
-        #answerInput { font-size: 20px; margin-top: 20px; }
-        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3 {
-            padding: 10px 20px; font-size: 18px; cursor: pointer;
-            border: none; border-radius: 5px; color: white;
-        }
-        #answerBtn { background-color: #4CAF50; }
-        #startBtn { background-color: #2196F3; display: inline-block; margin-top: 20px; }
-        #startBtnStage2 { background-color: #FF9800; display: none; margin-top: 20px; }
-        #startBtnStage3 { background-color: #9C27B0; display: none; margin-top: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+        #clearBtn { display: none; background-color: orange; color: white; }
+        #startBtnStage2, #startBtnStage3, #startBtnStage4 { display: none; }
+        #answerBtn { margin-top: 10px; }
+        #answerInput { padding: 5px; font-size: 16px; }
+        #question, #timer, #gameTimer, #score, #waitingMessage { margin: 10px 0; font-size: 18px; }
     </style>
 </head>
 <body>
-    <!-- ステージ名（サーバーから更新される） -->
-    <h1>かくれんぼ</h1>
+    <h1>ステージ制クイズゲーム</h1>
 
-    <div id="waitingMessage"></div>
+    <!-- ステージ開始ボタン -->
+    <button id="startBtn">第一ステージ開始</button>
+    <button id="startBtnStage2">第二ステージ開始</button>
+    <button id="startBtnStage3">第三ステージ開始</button>
+    <button id="startBtnStage4">第四ステージ開始</button>
 
-    <div id="gameTimer">120</div>
+    <!-- 問題表示 -->
+    <div id="question">ここに問題が表示されます</div>
 
-    <div id="question"></div>
-    <div id="timer">20</div>
+    <!-- タイマー -->
+    <div id="timer"></div>
+    <div id="gameTimer"></div>
 
-    <!-- 第一ステージ用 -->
-    <button id="startBtn">第一ステージスタート</button>
-
-    <!-- 第二ステージ用（最初は非表示、クリア者だけunlockStage2で表示） -->
-    <button id="startBtnStage2">第二ステージスタート</button>
-
-    <!-- 第三ステージ用（最初は非表示、第二ステージクリア者のみunlockStage3で表示） -->
-    <button id="startBtnStage3">第三ステージスタート</button>
-
-    <div>
-        <input type="text" id="answerInput" placeholder="答えを入力">
-        <button id="answerBtn">回答</button>
-    </div>
-
+    <!-- スコア -->
     <div id="score"></div>
+
+    <!-- 回答入力 -->
+    <input type="text" id="answerInput" placeholder="答えを入力">
+    <button id="answerBtn">回答</button>
+
+    <!-- 第四ステージ用クリアボタン -->
+    <button id="clearBtn">ゲームクリア</button>
+
+    <!-- 待機・通知メッセージ -->
+    <div id="waitingMessage" style="color:red; font-weight:bold;"></div>
 
     <script src="script.js"></script>
 </body>
 </html>
+
