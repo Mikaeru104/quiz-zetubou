@@ -3,65 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ステージゲーム</title>
+    <title>クイズゲーム</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
-            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
         }
         #gameContainer {
-            text-align: center;
             background: #fff;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            width: 400px;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            text-align: center;
         }
-        button {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            background: #3498db;
-            color: #fff;
-        }
-        #answerInput {
-            padding: 8px;
-            font-size: 16px;
-            width: 150px;
-        }
-        #score, #timer {
-            margin-top: 10px;
-            font-weight: bold;
-        }
+        #answerInput { padding:5px; font-size:16px; }
+        button { padding:10px 20px; font-size:16px; margin:5px; }
+        #startBtnStage2, #startBtnStage3, #startBtnStage4 { display:none; }
+        #clearBtn { display:none; padding:10px 20px; font-size:16px; background:green; color:#fff; border:none; border-radius:5px; cursor:pointer; }
+        #timer, #gameTimer, #score, #waitingMessage { margin:10px 0; font-weight:bold; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <h1>ステージゲーム</h1>
-        <p id="question">ここに問題が表示されます</p>
+        <h1>クイズゲーム</h1>
+        <div id="gameTimer"></div>
+        <div id="question">ここに問題が表示されます</div>
         <input type="text" id="answerInput" placeholder="答えを入力">
-        <br>
         <button id="answerBtn">回答</button>
-        <br>
-        <button id="startBtn">第一ステージ開始</button>
-        <button id="startBtnStage2" style="display:none;">第二ステージ開始</button>
-        <button id="startBtnStage3" style="display:none;">第三ステージ開始</button>
-        <button id="startBtnStage4" style="display:none;">第四ステージ開始</button>
-        <p id="timer"></p>
-        <p id="gameTimer"></p>
-        <p id="score"></p>
-        <p id="waitingMessage"></p>
+        <button id="startBtn">第一ステージスタート</button>
+        <button id="startBtnStage2">第二ステージスタート</button>
+        <button id="startBtnStage3">第三ステージスタート</button>
+        <button id="startBtnStage4">第四ステージスタート</button>
+        <button id="clearBtn">ゲームクリア！</button>
+        <div id="timer"></div>
+        <div id="score"></div>
+        <div id="waitingMessage"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
