@@ -11,6 +11,10 @@ app.use(express.static(path.join(__dirname)));
 
 let players = [];
 
+const requiredPlayersStage1 = 4; // 第一ステージ開始に必要な人数
+const requiredPlayersStage2 = 3; // 第二ステージ開始に必要な人数
+
+// 質問データ
 const stage1Questions = [
     { question: "104", correctAnswer: "T" },
     { question: "374", correctAnswer: "B" },
@@ -30,30 +34,71 @@ const stage3Questions = [
     { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
 ];
 
+// WebSocket接続
 wss.on('connection', ws=>{
     console.log('クライアント接続');
-    players.push({ ws, stage:1, answered:false, scoreStage1:0, scoreStage2:0, scoreStage3:0, scoreStage4:0, clearedStage1:false, clearedStage2:false });
+    players.push({
+        ws,
+        stage: 1,
+        answered: false,
+        scoreStage1: 0,
+        scoreStage2: 0,
+        scoreStage3: 0,
+        scoreStage4: 0,
+        clearedStage1: false,
+        clearedStage2: false,
+        ready: false,
+        handleAnswer: null
+    });
 
     ws.on('message', msg=>{
         const data = JSON.parse(msg);
         const player = players.find(p=>p.ws===ws);
         if(!player) return;
 
+        // スタートボタン押下
         if(data.type==='start'){
             player.stage = data.stage;
-            if(data.stage===1) startStage1([player]);
+            player.ready = true;
+
+            if(data.stage===1){
+                const stagePlayers = players.filter(p=>p.stage===1);
+                const readyCount = stagePlayers.filter(p=>p.ready).length;
+
+                if(readyCount === requiredPlayersStage1){
+                    // 人数揃ったら第一ステージ開始
+                    stagePlayers.forEach(p=>p.ready=false);
+                    startStage1(stagePlayers);
+                } else {
+                    // 待機中表示（端末には不要なので空文字）
+                    ws.send(JSON.stringify({ type:'waiting', message:'' }));
+                }
+            }
+
             if(data.stage===2){
                 if(!player.clearedStage1) return;
-                startStage2([player]);
+                const clearedPlayers = players.filter(p=>p.clearedStage1);
+                const readyCount = clearedPlayers.filter(p=>p.ready).length;
+
+                if(readyCount === requiredPlayersStage2){
+                    clearedPlayers.forEach(p=>p.ready=false);
+                    startStage2(clearedPlayers);
+                } else {
+                    ws.send(JSON.stringify({ type:'waiting', message:'' }));
+                }
             }
+
             if(data.stage===3){
                 if(!player.clearedStage2) return;
                 startStage3([player]);
             }
+
             if(data.stage===4){
                 startStage4([player]);
             }
         }
+
+        // 回答
         if(data.type==='answer'){
             if(player.handleAnswer) player.handleAnswer(player, data.answer);
         }
@@ -64,22 +109,18 @@ wss.on('connection', ws=>{
     ws.send(JSON.stringify({ type:'connected', message:'サーバー接続成功！' }));
 });
 
-// -------------------
-// 第一ステージ
-// -------------------
+// 第一ステージ（以前の人数待機ロジックを活かした形）
 function startStage1(stagePlayers){
     stagePlayers.forEach(p=>{ p.scoreStage1=0; p.answered=false; });
     let index=0;
     let timeLeft=120;
+
     stagePlayers.forEach(p=>p.ws.send(JSON.stringify({ type:'stage', name:'第一ステージ', stage:1 })));
 
     const gameTimer=setInterval(()=>{
         timeLeft--;
         stagePlayers.forEach(p=>p.ws.send(JSON.stringify({ type:'gameTimer', timeLeft })));
-        if(timeLeft<=0){
-            clearInterval(gameTimer);
-            endStage1(stagePlayers);
-        }
+        if(timeLeft<=0){ clearInterval(gameTimer); endStage1(stagePlayers); }
     },1000);
 
     function sendNext(){
@@ -87,17 +128,19 @@ function startStage1(stagePlayers){
         const q = stage1Questions[index];
         stagePlayers.forEach(p=>{ p.answered=false; p.ws.send(JSON.stringify({ type:'question', question:q.question, index, timeLeft:20 })); });
 
+        let qTime=20;
         const questionTimer=setInterval(()=>{
-            q.timeLeft = (q.timeLeft||20)-1;
-            stagePlayers.forEach(p=>p.ws.send(JSON.stringify({ type:'questionTimer', timeLeft:q.timeLeft })));
-            if(q.timeLeft<=0){ clearInterval(questionTimer); index++; sendNext(); }
+            qTime--;
+            stagePlayers.forEach(p=>p.ws.send(JSON.stringify({ type:'questionTimer', timeLeft:qTime })));
+            if(qTime<=0){ clearInterval(questionTimer); index++; sendNext(); }
         },1000);
 
         stagePlayers.forEach(p=>{
             p.handleAnswer=(pl, answer)=>{
                 if(pl.answered) return;
-                if(answer.trim().toUpperCase()===q.correctAnswer){ pl.scoreStage1+=10; pl.ws.send(JSON.stringify({ type:'score', score:pl.scoreStage1 })); }
+                if(answer.trim().toUpperCase()===q.correctAnswer) pl.scoreStage1+=10;
                 pl.answered=true;
+                pl.ws.send(JSON.stringify({ type:'score', score:pl.scoreStage1 }));
                 clearInterval(questionTimer); index++; sendNext();
             };
         });
@@ -233,3 +276,5 @@ function endStage4(stagePlayers){
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, ()=>console.log(`Server running on ${PORT}`));
+
+ 
