@@ -12,7 +12,7 @@
         #timer { font-size: 20px; margin-top: 20px; }
         #score { font-size: 20px; margin-top: 20px; }
         #answerInput { font-size: 20px; margin-top: 20px; }
-        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3 {
+        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3, #startBtnStage4 {
             padding: 10px 20px; font-size: 18px; cursor: pointer;
             border: none; border-radius: 5px; color: white;
         }
@@ -20,10 +20,11 @@
         #startBtn { background-color: #2196F3; display: inline-block; margin-top: 20px; }
         #startBtnStage2 { background-color: #FF9800; display: none; margin-top: 20px; }
         #startBtnStage3 { background-color: #9C27B0; display: none; margin-top: 20px; }
+        #startBtnStage4 { background-color: #E91E63; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <!-- ステージ名（サーバーから更新される） -->
+    <!-- ステージ名 -->
     <h1>かくれんぼ</h1>
 
     <div id="waitingMessage"></div>
@@ -33,14 +34,11 @@
     <div id="question"></div>
     <div id="timer">20</div>
 
-    <!-- 第一ステージ用 -->
+    <!-- 各ステージのスタートボタン -->
     <button id="startBtn">第一ステージスタート</button>
-
-    <!-- 第二ステージ用（最初は非表示、クリア者だけunlockStage2で表示） -->
     <button id="startBtnStage2">第二ステージスタート</button>
-
-    <!-- 第三ステージ用（最初は非表示、第二ステージクリア者のみunlockStage3で表示） -->
     <button id="startBtnStage3">第三ステージスタート</button>
+    <button id="startBtnStage4">第四ステージスタート</button>
 
     <div>
         <input type="text" id="answerInput" placeholder="答えを入力">
