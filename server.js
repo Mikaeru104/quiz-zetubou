@@ -256,10 +256,26 @@ function endStage2(stagePlayers, answeredPlayers) {
 // 第三ステージ（イライラ本）
 // ======================
 function startStage3(stagePlayers) {
-    stagePlayers.forEach(p => { p.scoreStage3 = 0; p.answered = false; p.ready = false; });
+    stagePlayers.forEach(p => { 
+        p.scoreStage3 = 0; 
+        p.answered = false; 
+        p.ready = false; 
+    });
+
+    const stage3Questions = [
+        { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
+        { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
+        { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
+        { question: "最終問題！「本」が乗っているページの番号を答えてください", correctAnswer: "400" }
+    ];
+
     let questionIndex = 0;
     let timeLeft = 120;
 
+    // ステージ名を送信
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 })));
+
+    // ゲーム全体のタイマー
     const gameTimer = setInterval(() => {
         timeLeft--;
         stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
@@ -269,18 +285,28 @@ function startStage3(stagePlayers) {
         }
     }, 1000);
 
-    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本' })));
-
+    // 問題送信関数
     function sendNextQuestion() {
         if (questionIndex < stage3Questions.length) {
-            const question = stage3Questions[questionIndex];
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question })));
-            startQuestionTimer(question);
+            const q = stage3Questions[questionIndex];
+            // 各問題開始時に answered をリセット
+            stagePlayers.forEach(p => p.answered = false);
+
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ 
+                type: 'question', 
+                question: q.question, 
+                index: questionIndex, 
+                timeLeft: 40 
+            })));
+
+            startQuestionTimer(q);
         } else {
+            clearInterval(gameTimer);
             endStage3(stagePlayers);
         }
     }
 
+    // 各問題の制限時間タイマー
     function startQuestionTimer(question) {
         let qTime = 40;
         const questionTimer = setInterval(() => {
@@ -289,24 +315,28 @@ function startStage3(stagePlayers) {
             if (qTime <= 0) {
                 clearInterval(questionTimer);
                 questionIndex++;
-                setTimeout(sendNextQuestion, 1000);
+                setTimeout(sendNextQuestion, 2000);
             }
         }, 1000);
 
-        stagePlayers.forEach(p => p.handleAnswer = (player, answer) => {
-            if (player.answered) return;
+        // 回答処理
+        function handleAnswer(player, answer) {
+            if (!player || player.answered) return;
+
             if (answer.trim() === question.correctAnswer) {
                 player.scoreStage3 += 30;
                 player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
+                player.answered = true;
+                player.ws.send(JSON.stringify({ type: 'waiting', message: '正解！次の問題を待ってください' }));
+            } else {
+                player.answered = true;
+                player.ws.send(JSON.stringify({ type: 'waiting', message: '不正解！次の問題を待ってください' }));
             }
-            player.answered = true;
-            clearInterval(questionTimer);
-            questionIndex++;
-            setTimeout(sendNextQuestion, 1000);
-        });
+        }
+
+        stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
     }
 
-    stagePlayers.forEach(p => p.answered = false);
     sendNextQuestion();
 }
 
@@ -314,13 +344,14 @@ function endStage3(stagePlayers) {
     stagePlayers.forEach(p => {
         let msg = `第三ステージ終了！スコア: ${p.scoreStage3}点`;
         if (p.scoreStage3 >= 80) {
-            msg += "\nイライラ本クリア！";
+            msg += "\n第三ステージクリア！おめでとう！";
         } else {
             msg += "\nクリアならず";
         }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
