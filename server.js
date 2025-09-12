@@ -53,64 +53,78 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('message', (message) => {
-        const msg = JSON.parse(message);
-        const player = players.find(p => p.ws === ws);
-        if (!player) return;
+    const msg = JSON.parse(message);
+    const player = players.find(p => p.ws === ws);
+    if (!player) return;
 
-        if (msg.type === 'start') {
-            player.ready = true;
-            player.stage = msg.stage;
+    if (msg.type === 'start') {
+        player.ready = true;
+        player.stage = msg.stage;
 
-            if (msg.stage === 1) {
-                const stagePlayers = players.filter(p => p.stage === 1);
-                const readyCount = stagePlayers.filter(p => p.ready).length;
+        if (msg.stage === 1) {
+            const stagePlayers = players.filter(p => p.stage === 1);
+            const readyCount = stagePlayers.filter(p => p.ready).length;
 
-                if (readyCount === requiredPlayersStage1) {
-                    startStage1(stagePlayers);
-                } else {
-                    ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: `第一ステージ: あと ${requiredPlayersStage1 - readyCount} 人を待っています...`
-                    }));
-                }
+            if (readyCount === requiredPlayersStage1) {
+                startStage1(stagePlayers);
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: `第一ステージ: あと ${requiredPlayersStage1 - readyCount} 人を待っています...`
+                }));
             }
-
-            if (msg.stage === 2) {
-                const clearedPlayers = players.filter(p => p.clearedStage1);
-                const readyCount = clearedPlayers.filter(p => p.ready).length;
-
-                if (clearedPlayers.indexOf(player) === -1) {
-                    ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: "あなたは第一ステージをクリアしていないため第二ステージに参加できません"
-                    }));
-                    return;
-                }
-
-                if (readyCount === requiredPlayersStage2) {
-                    startStage2(clearedPlayers);
-                } else {
-                    ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人のクリア者を待っています...`
-                    }));
-                }
-            }
-
-            if (msg.stage === 3) {
-                if (!player.clearedStage2) {
-                    ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: "あなたは第二ステージをクリアしていないため第三ステージに参加できません"
-                    }));
-                    return;
-                }
-                startStage3([player]); // 第三ステージは一人だけ
-            }
-        } else if (msg.type === 'answer') {
-            if (player.handleAnswer) player.handleAnswer(player, msg.answer);
         }
-    });
+
+        if (msg.stage === 2) {
+            const clearedPlayers = players.filter(p => p.clearedStage1);
+            const readyCount = clearedPlayers.filter(p => p.ready).length;
+
+            if (clearedPlayers.indexOf(player) === -1) {
+                ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: "あなたは第一ステージをクリアしていないため第二ステージに参加できません"
+                }));
+                return;
+            }
+
+            if (readyCount === requiredPlayersStage2) {
+                startStage2(clearedPlayers);
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人のクリア者を待っています...`
+                }));
+            }
+        }
+
+        if (msg.stage === 3) {
+            if (!player.clearedStage2) {
+                ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: "あなたは第二ステージをクリアしていないため第三ステージに参加できません"
+                }));
+                return;
+            }
+            startStage3([player]); // 第三ステージは一人だけ
+        }
+
+        if (msg.stage === 4) {
+            if (!player.clearedStage3) {
+                ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: "あなたは第三ステージをクリアしていないため第四ステージに参加できません"
+                }));
+                return;
+            }
+            startStage4([player]); // 第四ステージも一人ずつ挑戦
+        }
+    }
+
+    else if (msg.type === 'answer') {
+        if (player.handleAnswer) player.handleAnswer(player, msg.answer);
+    }
+});
+
 
     ws.on('close', () => {
         players = players.filter(p => p.ws !== ws);
