@@ -38,7 +38,8 @@ wss.on('connection', (ws) => {
         answered: false,
         stage: 1,
         ready: false,
-        handleAnswer: null
+        handleAnswer: null,
+        clearedStage1: false  // 第一ステージクリアフラグ
     });
 
     ws.on('message', (message) => {
@@ -50,17 +51,29 @@ wss.on('connection', (ws) => {
             player.ready = true;
             player.stage = msg.stage;
 
-            const stagePlayers = players.filter(p => p.stage === msg.stage);
-            const readyCount = stagePlayers.filter(p => p.ready).length;
-
             if (msg.stage === 1) {
+                const stagePlayers = players.filter(p => p.stage === 1);
+                const readyCount = stagePlayers.filter(p => p.ready).length;
+
                 if (readyCount === requiredPlayersStage1) startStage1(stagePlayers);
                 else ws.send(JSON.stringify({ type: 'waiting', message: `第一ステージ: あと ${requiredPlayersStage1 - readyCount} 人を待っています...` }));
             }
 
             if (msg.stage === 2) {
-                if (readyCount === requiredPlayersStage2) startStage2(stagePlayers);
-                else ws.send(JSON.stringify({ type: 'waiting', message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人を待っています...` }));
+                // 第二ステージは第一ステージクリア者のみ参加
+                const clearedPlayers = players.filter(p => p.clearedStage1);
+                const readyCount = clearedPlayers.filter(p => p.ready).length;
+
+                if (clearedPlayers.indexOf(player) === -1) {
+                    ws.send(JSON.stringify({ type: 'waiting', message: "あなたは第一ステージをクリアしていないため第二ステージに参加できません" }));
+                    return;
+                }
+
+                if (readyCount === requiredPlayersStage2) startStage2(clearedPlayers);
+                else ws.send(JSON.stringify({
+                    type: 'waiting',
+                    message: `第二ステージ: あと ${requiredPlayersStage2 - readyCount} 人のクリア者を待っています...`
+                }));
             }
         } else if (msg.type === 'answer') {
             if (player.handleAnswer) player.handleAnswer(player, msg.answer);
@@ -151,8 +164,13 @@ function endStage1(stagePlayers) {
 
     stagePlayers.forEach(p => {
         let msg = `第一ステージ終了！最終スコア: ${p.scoreStage1}点`;
-        if (p.scoreStage1 >= 41) msg += "\n第一ステージクリア、Bに移動してください";
-        else msg += "\nクリアならず、速やかに退場してください";
+        if (p.scoreStage1 >= 41) {
+            msg += "\n第一ステージクリア、Bに移動してください";
+            p.clearedStage1 = true;
+        } else {
+            msg += "\nクリアならず、速やかに退場してください";
+            p.clearedStage1 = false;
+        }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
