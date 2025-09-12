@@ -1,8 +1,5 @@
 const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
 
-let currentStage = 1; // 現在のステージを保持
-let currentQuestionIndex = 0; // ステージ内の問題番号（第3ステージ対応）
-
 ws.onopen = () => {
     console.log('Connected to WebSocket');
     document.getElementById('waitingMessage').innerText = "サーバー接続成功！";
@@ -16,15 +13,9 @@ ws.onmessage = (event) => {
             break;
 
         case 'question':
-            // 問題が送られてきたら表示を更新
             document.getElementById('question').innerText = `問題: ${message.question}`;
-            document.getElementById('timer').innerText = message.timeLeft || 20;
+            document.getElementById('timer').innerText = message.timeLeft || "";
             document.getElementById('waitingMessage').innerText = "";
-
-            // 現在の問題番号を更新（特に第3ステージで必要）
-            if (typeof message.index !== "undefined") {
-                currentQuestionIndex = message.index;
-            }
             break;
 
         case 'gameTimer':
@@ -38,6 +29,7 @@ ws.onmessage = (event) => {
         case 'end':
             document.getElementById('question').innerText = message.message;
             document.getElementById('timer').innerText = "";
+            document.getElementById('startBtn').style.display = "inline-block"; // 第一ステージ用
             break;
 
         case 'score':
@@ -50,70 +42,120 @@ ws.onmessage = (event) => {
 
         case 'stage':
             document.querySelector('h1').innerText = message.name;
-            currentStage = message.stage; // サーバーから送られたステージ番号を保存
             break;
 
-        case 'unlockStage2':
+        case 'showStage2Start':
             document.getElementById('startBtnStage2').style.display = "inline-block";
-            document.getElementById('startBtn').style.display = "none";
             break;
 
-        case 'unlockStage3':
+        case 'showStage3Start':
             document.getElementById('startBtnStage3').style.display = "inline-block";
-            document.getElementById('startBtnStage2').style.display = "none";
+            break;
+
+        case 'showStage4Start':
+            document.getElementById('startBtnStage4').style.display = "inline-block";
+            break;
+
+        case 'showClearButton': // 第四ステージ専用
+            clearBtn.style.display = "inline-block";
             break;
     }
 };
 
-// 第一ステージ
+// ==========================
+// 第一ステージスタート
+// ==========================
 document.getElementById('startBtn').addEventListener('click', () => {
     console.log('第一ステージスタート押下');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
     ws.send(JSON.stringify({ type: 'start', stage: 1 }));
-    currentStage = 1;
-    currentQuestionIndex = 0;
     document.getElementById('waitingMessage').innerText = "準備中...";
     document.getElementById('question').innerText = "クイズ中...";
     document.getElementById('startBtn').style.display = "none";
 });
 
-// 第二ステージ
+// ==========================
+// 第二ステージスタート
+// ==========================
 document.getElementById('startBtnStage2').addEventListener('click', () => {
     console.log('第二ステージスタート押下');
-    ws.send(JSON.stringify({ type: 'start', stage: 2 }));
-    currentStage = 2;
-    currentQuestionIndex = 0;
-    document.getElementById('waitingMessage').innerText = "準備中...";
-    document.getElementById('question').innerText = "クイズ中...";
-    document.getElementById('startBtnStage2').style.display = "none";
-});
-
-// 第三ステージ
-document.getElementById('startBtnStage3').addEventListener('click', () => {
-    console.log('第三ステージスタート押下');
-    ws.send(JSON.stringify({ type: 'start', stage: 3 }));
-    currentStage = 3;
-    currentQuestionIndex = 0;
-    document.getElementById('waitingMessage').innerText = "準備中...";
-    document.getElementById('question').innerText = "クイズ中...";
-    document.getElementById('startBtnStage3').style.display = "none";
-});
-
-// 回答ボタン（全ステージ共通で常に動作）
-document.getElementById('answerBtn').addEventListener('click', () => {
-    const answer = document.getElementById('answerInput').value;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         alert('WebSocket未接続です');
         return;
     }
-
-    // サーバーに現在のステージと問題番号を送る
-    ws.send(JSON.stringify({
-        type: 'answer',
-        answer,
-        stage: currentStage,
-        index: currentQuestionIndex
-    }));
-
-    // 入力欄をクリア
-    document.getElementById('answerInput').value = "";
+    ws.send(JSON.stringify({ type: 'start', stage: 2 }));
+    document.getElementById('waitingMessage').innerText = "準備中...";
+    document.getElementById('question').innerText = "絵しりとり中...";
+    document.getElementById('startBtnStage2').style.display = "none";
 });
+
+// ==========================
+// 第三ステージスタート
+// ==========================
+document.getElementById('startBtnStage3').addEventListener('click', () => {
+    console.log('第三ステージスタート押下');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
+    ws.send(JSON.stringify({ type: 'start', stage: 3 }));
+    document.getElementById('waitingMessage').innerText = "準備中...";
+    document.getElementById('question').innerText = "イライラ本クイズ中...";
+    document.getElementById('startBtnStage3').style.display = "none";
+});
+
+// ==========================
+// 第四ステージスタート
+// ==========================
+document.getElementById('startBtnStage4').addEventListener('click', () => {
+    console.log('第四ステージスタート押下');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
+    ws.send(JSON.stringify({ type: 'start', stage: 4 }));
+    document.getElementById('waitingMessage').innerText = "準備中...";
+    document.getElementById('question').innerText = "絶棒チャレンジ中...";
+    document.getElementById('startBtnStage4').style.display = "none";
+});
+
+// ==========================
+// 回答ボタン
+// ==========================
+document.getElementById('answerBtn').addEventListener('click', () => {
+    const answer = document.getElementById('answerInput').value.trim();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
+    ws.send(JSON.stringify({ type: 'answer', answer }));
+    document.getElementById('answerInput').value = ""; // 入力欄リセット
+});
+
+// ==========================
+// 第四ステージ用 ゲームクリアボタン
+// ==========================
+const clearBtn = document.createElement("button");
+clearBtn.innerText = "ゲームクリア";
+clearBtn.style.display = "none";
+clearBtn.style.backgroundColor = "#E91E63";
+clearBtn.style.color = "white";
+clearBtn.style.fontSize = "18px";
+clearBtn.style.padding = "10px 20px";
+clearBtn.style.marginTop = "20px";
+clearBtn.style.border = "none";
+clearBtn.style.borderRadius = "5px";
+document.body.appendChild(clearBtn);
+
+clearBtn.addEventListener('click', () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
+    ws.send(JSON.stringify({ type: 'answer', answer: "CLEAR" }));
+    clearBtn.style.display = "none"; // 押したら消える
+});
+     
