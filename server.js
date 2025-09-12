@@ -33,7 +33,9 @@ const stage3Questions = [
 const requiredPlayersStage1 = 4;
 const requiredPlayersStage2 = 3;
 
+// ======================
 // WebSocket接続
+// ======================
 wss.on('connection', (ws) => {
     console.log('新しいクライアント接続');
 
@@ -42,6 +44,7 @@ wss.on('connection', (ws) => {
         scoreStage1: 0,
         scoreStage2: 0,
         scoreStage3: 0,
+        scoreStage4: 0,
         answered: false,
         stage: 1,
         ready: false,
@@ -71,7 +74,7 @@ wss.on('connection', (ws) => {
                 const clearedPlayers = players.filter(p => p.clearedStage1);
                 const readyCount = clearedPlayers.filter(p => p.ready).length;
 
-                if (clearedPlayers.indexOf(player) === -1) {
+                if (!player.clearedStage1) {
                     ws.send(JSON.stringify({ type: 'waiting', message: "あなたは第一ステージをクリアしていないため第二ステージに参加できません" }));
                     return;
                 }
@@ -90,8 +93,17 @@ wss.on('connection', (ws) => {
                 }
                 startStage3([player]); // 第三ステージは一人だけ
             }
+
+            if (msg.stage === 4) {
+                if (player.scoreStage3 < 80) {
+                    ws.send(JSON.stringify({ type: 'waiting', message: "あなたは第三ステージをクリアしていないため第四ステージに参加できません" }));
+                    return;
+                }
+                startStage4([player]);
+            }
+
         } else if (msg.type === 'answer') {
-            if (player.handleAnswer) player.handleAnswer(player, msg.answer);
+            if (player.handleAnswer) player.handleAnswer(player, msg.answer, msg.stage, msg.index);
         }
     });
 
@@ -102,7 +114,6 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'connected', message: 'サーバー接続成功！' }));
 });
 
-
 // ======================
 // 第一ステージ
 // ======================
@@ -111,6 +122,8 @@ function startStage1(stagePlayers) {
     let questionIndex = 0;
     let answeredPlayers = [];
     let timeLeft = 120;
+
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'かくれんぼ', stage: 1 })));
 
     const gameTimer = setInterval(() => {
         timeLeft--;
@@ -124,35 +137,29 @@ function startStage1(stagePlayers) {
     function sendNextQuestion() {
         if (questionIndex < stage1Questions.length) {
             const question = stage1Questions[questionIndex];
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question, stageName: "かくれんぼ" })));
-            startQuestionTimer(question);
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question, index: questionIndex, timeLeft: 20 })));
+
+            // 回答処理
+            stagePlayers.forEach(p => {
+                p.handleAnswer = (player, answer, stage, index) => {
+                    if (!player || player.answered || stage !== 1 || index !== questionIndex) return;
+                    if (answer.trim().toUpperCase() === question.correctAnswer) {
+                        player.answered = true;
+                        answeredPlayers.push(player);
+                        player.ws.send(JSON.stringify({ type: 'waiting', message: '次の問題をお待ちください...' }));
+                    }
+
+                    // 全員回答したら次の問題へ
+                    if (stagePlayers.every(pl => pl.answered)) {
+                        assignScoresStage1();
+                        stagePlayers.forEach(p => p.answered = false);
+                        questionIndex++;
+                        setTimeout(sendNextQuestion, 1000);
+                    }
+                };
+            });
         } else {
             endStage1(stagePlayers);
-        }
-    }
-
-    function startQuestionTimer(question) {
-        let qTime = 20;
-        const questionTimer = setInterval(() => {
-            qTime--;
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime })));
-            if (qTime <= 0) {
-                clearInterval(questionTimer);
-                assignScoresStage1();
-                stagePlayers.forEach(p => p.answered = false);
-                questionIndex++;
-                setTimeout(sendNextQuestion, 2000);
-            }
-        }, 1000);
-    }
-
-    function handleAnswer(player, answer) {
-        if (!player || player.answered) return;
-        const correct = stage1Questions[questionIndex].correctAnswer;
-        if (answer.trim().toUpperCase() === correct) {
-            player.answered = true;
-            answeredPlayers.push(player);
-            player.ws.send(JSON.stringify({ type: 'waiting', message: '次の問題をお待ちください...' }));
         }
     }
 
@@ -167,7 +174,6 @@ function startStage1(stagePlayers) {
         answeredPlayers = [];
     }
 
-    stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
     sendNextQuestion();
 }
 
@@ -192,7 +198,6 @@ function endStage1(stagePlayers) {
     });
 }
 
-
 // ======================
 // 第二ステージ
 // ======================
@@ -201,6 +206,9 @@ function startStage2(stagePlayers) {
     const question = stage2Questions[0];
     let answeredPlayers = [];
     let timeLeft = 120;
+
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: '絵しりとり', stage: 2 })));
+    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question, index: 0, timeLeft: 40 })));
 
     const gameTimer = setInterval(() => {
         timeLeft--;
@@ -211,23 +219,20 @@ function startStage2(stagePlayers) {
         }
     }, 1000);
 
-    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: '絵しりとり' })));
-    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question })));
-
-    function handleAnswer(player, answer) {
-        if (!player || player.answered) return;
-        if (question.correctAnswers.includes(answer.trim())) {
-            player.answered = true;
-            answeredPlayers.push(player);
-            player.ws.send(JSON.stringify({ type: 'waiting', message: '回答完了しました' }));
-        }
-        if (answeredPlayers.length === stagePlayers.length) {
-            clearInterval(gameTimer);
-            endStage2(stagePlayers, answeredPlayers);
-        }
-    }
-
-    stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
+    stagePlayers.forEach(p => {
+        p.handleAnswer = (player, answer, stage, index) => {
+            if (!player || player.answered || stage !== 2) return;
+            if (question.correctAnswers.includes(answer.trim())) {
+                player.answered = true;
+                answeredPlayers.push(player);
+                player.ws.send(JSON.stringify({ type: 'waiting', message: '回答完了しました' }));
+            }
+            if (answeredPlayers.length === stagePlayers.length) {
+                clearInterval(gameTimer);
+                endStage2(stagePlayers, answeredPlayers);
+            }
+        };
+    });
 }
 
 function endStage2(stagePlayers, answeredPlayers) {
@@ -251,30 +256,16 @@ function endStage2(stagePlayers, answeredPlayers) {
     });
 }
 
-
 // ======================
-// 第三ステージ (イライラ本)
+// 第三ステージ
 // ======================
 function startStage3(stagePlayers) {
-    stagePlayers.forEach(p => { 
-        p.scoreStage3 = 0; 
-        p.answered = false; 
-        p.ready = false; 
-    });
-
-    const stage3Questions = [
-        { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
-        { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
-        { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
-    ];
-
+    stagePlayers.forEach(p => { p.scoreStage3 = 0; p.answered = false; p.ready = false; });
     let questionIndex = 0;
     let timeLeft = 120;
 
-    // ステージ名を送信
     stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 })));
 
-    // ゲーム全体のタイマー
     const gameTimer = setInterval(() => {
         timeLeft--;
         stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
@@ -284,64 +275,36 @@ function startStage3(stagePlayers) {
         }
     }, 1000);
 
-    // 問題送信関数
     function sendNextQuestion() {
         if (questionIndex < stage3Questions.length) {
             const q = stage3Questions[questionIndex];
-            // 各問題開始時に answered をリセット
             stagePlayers.forEach(p => p.answered = false);
+            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: q.question, index: questionIndex, timeLeft: 40 })));
 
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ 
-                type: 'question', 
-                question: q.question, 
-                index: questionIndex, 
-                timeLeft: 40 
-            })));
+            stagePlayers.forEach(p => {
+                p.handleAnswer = (player, answer, stage, index) => {
+                    if (!player || player.answered || stage !== 3 || index !== questionIndex) return;
 
-            startQuestionTimer();
+                    if (answer.trim() === q.correctAnswer) {
+                        player.scoreStage3 += 30;
+                        player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
+                        player.ws.send(JSON.stringify({ type: 'waiting', message: '正解！次の問題を待ってください' }));
+                    } else {
+                        player.ws.send(JSON.stringify({ type: 'waiting', message: '不正解！次の問題を待ってください' }));
+                    }
+                    player.answered = true;
+
+                    if (stagePlayers.every(pl => pl.answered)) {
+                        questionIndex++;
+                        setTimeout(sendNextQuestion, 1000);
+                    }
+                };
+            });
+
         } else {
             clearInterval(gameTimer);
             endStage3(stagePlayers);
         }
-    }
-
-    // 各問題の制限時間タイマー
-    function startQuestionTimer() {
-        let qTime = 40;
-        const questionTimer = setInterval(() => {
-            qTime--;
-            stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime })));
-            if (qTime <= 0) {
-                clearInterval(questionTimer);
-                questionIndex++;
-                setTimeout(sendNextQuestion, 2000);
-            }
-        }, 1000);
-
-        // 回答処理
-        stagePlayers.forEach(p => {
-            p.handleAnswer = (player, answer) => {
-                if (!player || player.answered) return;
-
-                const correct = stage3Questions[questionIndex].correctAnswer;
-                if (answer.trim() === correct) {
-                    player.scoreStage3 += 30;
-                    player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
-                    player.ws.send(JSON.stringify({ type: 'waiting', message: '正解！次の問題を待ってください' }));
-                } else {
-                    player.ws.send(JSON.stringify({ type: 'waiting', message: '不正解！次の問題を待ってください' }));
-                }
-
-                player.answered = true;
-
-                // 全員が答え終わったら次へ
-                if (stagePlayers.every(pl => pl.answered)) {
-                    clearInterval(questionTimer);
-                    questionIndex++;
-                    setTimeout(sendNextQuestion, 2000);
-                }
-            };
-        });
     }
 
     sendNextQuestion();
@@ -360,24 +323,15 @@ function endStage3(stagePlayers) {
 }
 
 // ======================
-// 第四ステージ (絶棒)
+// 第四ステージ
 // ======================
 function startStage4(stagePlayers) {
-    stagePlayers.forEach(p => { 
-        p.scoreStage4 = 0; 
-        p.ready = false; 
-        p.answered = false; 
-    });
-
+    stagePlayers.forEach(p => { p.scoreStage4 = 0; p.ready = false; p.answered = false; });
     let timeLeft = 180;
 
-    // ステージ名送信
     stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: '絶棒', stage: 4 })));
-
-    // 「ゲームクリアボタンを表示」通知
     stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'showClearButton' })));
 
-    // 制限時間タイマー
     const gameTimer = setInterval(() => {
         timeLeft--;
         stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft })));
@@ -387,14 +341,12 @@ function startStage4(stagePlayers) {
         }
     }, 1000);
 
-    // 回答（クリアボタン押下）処理
     stagePlayers.forEach(p => {
-        p.handleAnswer = (player, answer) => {
-            if (answer === "CLEAR" && !player.answered) {
+        p.handleAnswer = (player, answer, stage, index) => {
+            if (stage !== 4 || player.answered) return;
+            if (answer === "CLEAR") {
                 player.scoreStage4 += 100;
                 player.answered = true;
-
-                // 即終了
                 clearInterval(gameTimer);
                 endStage4(stagePlayers);
             }
@@ -405,11 +357,8 @@ function startStage4(stagePlayers) {
 function endStage4(stagePlayers) {
     stagePlayers.forEach(p => {
         let msg = `第四ステージ終了！スコア: ${p.scoreStage4}点`;
-        if (p.scoreStage4 >= 100) {
-            msg += "\n第四ステージクリア！おめでとう！";
-        } else {
-            msg += "\nクリアならず";
-        }
+        if (p.scoreStage4 >= 100) msg += "\n第四ステージクリア！おめでとう！";
+        else msg += "\nクリアならず";
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
