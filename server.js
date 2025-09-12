@@ -1,214 +1,132 @@
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 8080 });
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const WebSocket = require("ws");
 
-/**
- * ルーム管理
- * stage1: かくれんぼ
- * stage2: 絵しりとり
- */
-let rooms = {
-  stage1: {
-    players: [],
-    gameInProgress: false,
-    startVotes: 0,
-    totalPlayers: 4,
-    timer: null,
-    // ★ 第一ステージかくれんぼの問題セット
-    questions: [
-      { q: "104", a: "T" },
-      { q: "374", a: "B" },
-      { q: "638", a: "Z" },
-      { q: "946", a: "S" },
-      { q: "233", a: "W" },
-      { q: "578", a: "G" }
-    ],
-    currentQuestionIndex: 0,
-    answeredPlayers: []
-  },
-  stage2: {
-    players: [],
-    gameInProgress: false,
-    startVotes: 0,
-    totalPlayers: 3,
-    timer: null,
-    answers: [],
-    validAnswers: ["4768", "3229", "5610"]
+// ==== HTTP サーバー（フロント配信用） ====
+const server = http.createServer((req, res) => {
+  // index.html を返す
+  let filePath = path.join(__dirname, "index.html");
+  if (req.url.endsWith("script.js")) {
+    filePath = path.join(__dirname, "script.js");
+    res.writeHead(200, { "Content-Type": "application/javascript" });
+  } else {
+    res.writeHead(200, { "Content-Type": "text/html" });
   }
-};
 
-function broadcast(roomName, data) {
-  rooms[roomName].players.forEach(p => {
-    if (p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify(data));
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      res.writeHead(500);
+      res.end("Error loading file");
+      return;
     }
-  });
-}
-
-wss.on('connection', (ws) => {
-  // 新規参加者は stage1 へ
-  let player = { ws, score: 0, room: 'stage1' };
-  rooms.stage1.players.push(player);
-
-  ws.on('message', (message) => {
-    const msg = JSON.parse(message);
-
-    // ===== ステージ1: かくれんぼ =====
-    if (player.room === 'stage1') {
-      if (msg.type === 'start') {
-        rooms.stage1.startVotes++;
-        if (rooms.stage1.startVotes >= rooms.stage1.totalPlayers) {
-          startStage1();
-        }
-      } else if (msg.type === 'answer') {
-        handleStage1Answer(player, msg.answer);
-      }
-    }
-
-    // ===== ステージ2: 絵しりとり =====
-    if (player.room === 'stage2') {
-      if (msg.type === 'start') {
-        rooms.stage2.startVotes++;
-        if (rooms.stage2.startVotes >= rooms.stage2.totalPlayers) {
-          startStage2();
-        }
-      } else if (msg.type === 'answer') {
-        handleStage2Answer(player, msg.answer);
-      }
-    }
-  });
-
-  ws.on('close', () => {
-    if (rooms[player.room]) {
-      rooms[player.room].players = rooms[player.room].players.filter(p => p !== player);
-    }
+    res.end(content);
   });
 });
 
-// ===== ステージ1開始 =====
-function startStage1() {
-  const room = rooms.stage1;
-  if (room.gameInProgress) return;
+// ==== WebSocket サーバー ====
+const wss = new WebSocket.Server({ server });
 
-  room.gameInProgress = true;
-  room.startVotes = 0;
-  room.currentQuestionIndex = 0;
-  room.answeredPlayers = [];
-  room.players.forEach(p => p.score = 0);
+// ルーム管理
+let rooms = {
+  stage1: { players: [], startVotes: 0, totalPlayers: 0, gameStarted: false },
+  stage2: { players: [], startVotes: 0, totalPlayers: 0, gameStarted: false }
+};
 
-  sendStage1Question();
-
-  let timeLeft = 120; // 全体タイマー
-  room.timer = setInterval(() => {
-    timeLeft--;
-    broadcast('stage1', { type: 'gameTimer', timeLeft });
-    if (timeLeft <= 0) {
-      clearInterval(room.timer);
-      endStage1();
-    }
-  }, 1000);
-}
-
-function sendStage1Question() {
-  const room = rooms.stage1;
-  if (room.currentQuestionIndex >= room.questions.length) {
-    endStage1();
-    return;
-  }
-
-  const q = room.questions[room.currentQuestionIndex];
-  room.answeredPlayers = [];
-  broadcast('stage1', { type: 'question', question: q.q });
-}
-
-function handleStage1Answer(player, answer) {
-  const room = rooms.stage1;
-  const q = room.questions[room.currentQuestionIndex];
-
-  if (answer.trim().toUpperCase() === q.a && !room.answeredPlayers.includes(player)) {
-    room.answeredPlayers.push(player);
-    const rank = room.answeredPlayers.length;
-    if (rank === 1) player.score += 50;
-    else if (rank === 2) player.score = Math.max(player.score, 41);
-    else if (rank === 3) player.score = Math.max(player.score, 41);
-
-    player.ws.send(JSON.stringify({ type: 'score', score: player.score }));
-
-    if (room.answeredPlayers.length >= room.players.length) {
-      room.currentQuestionIndex++;
-      setTimeout(sendStage1Question, 2000); // 2秒後に次の問題
-    }
+// 参加者割り当て
+function assignRoom(ws) {
+  if (rooms.stage1.players.length < 4 || rooms.stage1.gameStarted === false) {
+    rooms.stage1.players.push({ ws, score: 0, answered: false });
+    rooms.stage1.totalPlayers = 4;
+    return "stage1";
+  } else {
+    rooms.stage2.players.push({ ws, score: 0, answered: false });
+    rooms.stage2.totalPlayers = 3;
+    return "stage2";
   }
 }
 
-function endStage1() {
-  const room = rooms.stage1;
-  broadcast('stage1', { type: 'end', message: 'ステージ1終了！' });
+// メッセージ送信
+function broadcast(roomName, msg) {
+  rooms[roomName].players.forEach(p => {
+    p.ws.send(JSON.stringify(msg));
+  });
+}
 
-  // 上位3人をステージ2へ
-  const top3 = [...room.players].sort((a, b) => b.score - a.score).slice(0, 3);
-  top3.forEach(p => {
-    p.room = 'stage2';
-    rooms.stage2.players.push(p);
+wss.on("connection", (ws) => {
+  const room = assignRoom(ws);
+  ws.send(JSON.stringify({ type: "info", message: `${room} に参加しました` }));
+
+  ws.on("message", (message) => {
+    const msg = JSON.parse(message);
+    if (msg.type === "start") {
+      rooms[room].startVotes++;
+      if (rooms[room].startVotes >= rooms[room].totalPlayers) {
+        rooms[room].gameStarted = true;
+        if (room === "stage1") {
+          startStage1();
+        } else if (room === "stage2") {
+          startStage2();
+        }
+      } else {
+        broadcast(room, {
+          type: "waiting",
+          message: `準備中... (${rooms[room].startVotes}/${rooms[room].totalPlayers})`
+        });
+      }
+    }
   });
 
-  // ステージ1をリセット（次の新規プレイヤー用に空にする）
-  room.players = [];
-  room.gameInProgress = false;
-  room.startVotes = 0;
-  clearInterval(room.timer);
+  ws.on("close", () => {
+    rooms[room].players = rooms[room].players.filter(p => p.ws !== ws);
+  });
+});
+
+// ==== ステージ1 ====
+const stage1Questions = [
+  { question: "104", answer: "T" },
+  { question: "374", answer: "B" },
+  { question: "638", answer: "Z" },
+  { question: "946", answer: "S" },
+  { question: "233", answer: "W" },
+  { question: "578", answer: "G" },
+];
+
+function startStage1() {
+  broadcast("stage1", { type: "question", question: "104" });
+  // TODO: 回答処理 & タイマー
 }
 
-// ===== ステージ2開始 =====
+// ==== ステージ2 ====
 function startStage2() {
-  const room = rooms.stage2;
-  if (room.gameInProgress) return;
+  // 全員スコアをリセット
+  rooms.stage2.players.forEach(p => (p.score = 0));
 
-  room.gameInProgress = true;
-  room.startVotes = 0;
-  room.answers = [];
-  room.players.forEach(p => p.score = 0);
+  broadcast("stage2", {
+    type: "question",
+    question: "四桁を答えてください"
+  });
 
-  broadcast('stage2', { type: 'question', question: '絵しりとり：四桁を教えてください' });
-
-  let timeLeft = 120;
-  room.timer = setInterval(() => {
-    timeLeft--;
-    broadcast('stage2', { type: 'gameTimer', timeLeft });
-    if (timeLeft <= 0) {
-      clearInterval(room.timer);
-      endStage2();
-    }
-  }, 1000);
-}
-
-function handleStage2Answer(player, answer) {
-  const room = rooms.stage2;
-  if (room.validAnswers.includes(answer.trim()) && !room.answers.find(a => a.player === player)) {
-    room.answers.push({ player, answer });
-    const rank = room.answers.length;
-    if (rank === 1) player.score = 100;
-    else if (rank === 2) player.score = 80;
-    else if (rank === 3) player.score = 60;
-
-    player.ws.send(JSON.stringify({ type: 'score', score: player.score }));
-
-    if (room.answers.length >= room.players.length) {
-      clearInterval(room.timer);
-      endStage2();
-    }
-  }
+  // 120秒で終了
+  setTimeout(() => {
+    endStage2();
+  }, 120 * 1000);
 }
 
 function endStage2() {
-  const room = rooms.stage2;
-  room.players.forEach(p => {
-    const cleared = p.score >= 100;
-    p.ws.send(JSON.stringify({ type: 'end', message: cleared ? 'クリア！' : 'ゲームオーバー' }));
+  rooms.stage2.players.forEach(p => {
+    let result = `第2ステージ終了！あなたのスコア: ${p.score}`;
+    if (p.score >= 100) {
+      result += "\nクリア！";
+    } else {
+      result += "\n失敗...";
+    }
+    p.ws.send(JSON.stringify({ type: "end", message: result }));
   });
-
-  // 完全リセット
-  room.players = [];
-  room.gameInProgress = false;
-  room.startVotes = 0;
-  clearInterval(room.timer);
 }
+
+// ==== サーバー起動 ====
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
