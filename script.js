@@ -1,4 +1,10 @@
-const ws = new WebSocket("ws://localhost:3000"); // 本番は wss:// に変更
+// ======================
+// WebSocket URL設定
+// ======================
+// ローカルテストは ws://localhost:3000
+// 本番サーバーは wss://your-app.onrender.com に変更
+const WS_URL = window.location.hostname === "localhost" ? "ws://localhost:3000" : "wss://your-app.onrender.com";
+const ws = new WebSocket(WS_URL);
 
 let currentStage = 1; // 1:かくれんぼ, 2:絵しりとり
 
@@ -17,9 +23,20 @@ const answerBtn = document.getElementById("answerBtn");
 // ======================
 ws.onopen = () => {
     console.log("WebSocket接続成功");
+    waitingMessage.innerText = "サーバーに接続されました";
 
     // ステージに参加
     ws.send(JSON.stringify({ type: "join", stage: currentStage }));
+};
+
+ws.onclose = () => {
+    console.log("WebSocket切断");
+    waitingMessage.innerText = "サーバーとの接続が切れました";
+};
+
+ws.onerror = (err) => {
+    console.error("WebSocketエラー:", err);
+    waitingMessage.innerText = "サーバーに接続できません";
 };
 
 // ======================
@@ -52,7 +69,7 @@ ws.onmessage = (event) => {
         case "end":
             questionDiv.innerText = msg.message;
             timerDiv.innerText = "";
-            startBtn.style.display = "inline-block"; // ゲーム終了後にスタートボタン再表示
+            startBtn.style.display = "inline-block"; // ゲーム終了後にスタート再表示
             break;
         case "info":
             waitingMessage.innerText = msg.message;
