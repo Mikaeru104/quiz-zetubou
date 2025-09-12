@@ -425,14 +425,17 @@ function endStage3(stagePlayers) {
         let msg = `第三ステージ終了！スコア: ${p.scoreStage3 || 0}点`;
         if (p.scoreStage3 >= 50) {
             msg += "\n第三ステージクリア！第四ステージへ進めます";
+            p.clearedStage3 = true; // ←★ これを追加
             // 第四ステージスタートボタンを解放
             p.ws.send(JSON.stringify({ type: 'showClearButton' }));
         } else {
             msg += "\n残念ながら進出できません";
+            p.clearedStage3 = false; // 念のため追加
         }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
+
 
 // ======================
 // 第四ステージ
