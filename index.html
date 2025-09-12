@@ -1,60 +1,44 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>クイズアプリ</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 30px;
-    }
-    #status {
-      margin: 20px 0;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    #startBtn, #answerBtn {
-      padding: 10px 20px;
-      font-size: 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      margin-top: 20px;
-    }
-    #startBtn {
-      background-color: #2196F3;
-      color: white;
-    }
-    #answerBtn {
-      background-color: #4CAF50;
-      color: white;
-    }
-    #answerSection {
-      display: none;
-      margin-top: 20px;
-    }
-    #answerInput {
-      font-size: 18px;
-      padding: 5px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クイズアプリ</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #waitingMessage { color: red; font-weight: bold; }
+        #gameTimer { position: fixed; top: 10px; right: 10px; font-size: 24px; font-weight: bold; }
+        #question { margin-top: 50px; font-size: 24px; font-weight: bold; }
+        #timer { font-size: 20px; margin-top: 20px; }
+        #score { font-size: 20px; margin-top: 20px; }
+        #answerInput { font-size: 20px; margin-top: 20px; }
+        #answerBtn, #startBtn {
+            padding: 10px 20px; font-size: 18px; cursor: pointer;
+            border: none; border-radius: 5px; color: white;
+        }
+        #answerBtn { background-color: #4CAF50; }
+        #startBtn { background-color: #2196F3; display: inline-block; margin-top: 20px; }
+    </style>
 </head>
 <body>
-  <h1 id="gameTitle">クイズアプリ</h1>
+    <h1>かくれんぼ</h1>
 
-  <div id="status">サーバーに接続中...</div>
+    <div id="waitingMessage"></div>
 
-  <!-- スタートボタン -->
-  <button id="startBtn" onclick="startGame()">スタート</button>
+    <div id="gameTimer">120</div>
 
-  <!-- 回答エリア -->
-  <div id="answerSection">
-    <input type="text" id="answerInput" placeholder="答えを入力" />
-    <button id="answerBtn" onclick="sendAnswer()">回答</button>
-  </div>
+    <div id="question"></div>
+    <div id="timer">20</div>
 
-  <script src="script.js"></script>
+    <button id="startBtn">スタート</button>
+
+    <div>
+        <input type="text" id="answerInput" placeholder="答えを入力">
+        <button id="answerBtn">回答</button>
+    </div>
+
+    <div id="score"></div>
+
+    <script src="script.js"></script>
 </body>
 </html>
