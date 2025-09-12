@@ -4,46 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ステージ制クイズゲーム</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        button { margin: 5px; padding: 10px 20px; font-size: 16px; }
-        #clearBtn { display: none; background-color: orange; color: white; }
-        #startBtnStage2, #startBtnStage3, #startBtnStage4 { display: none; }
-        #answerBtn { margin-top: 10px; }
-        #answerInput { padding: 5px; font-size: 16px; }
-        #question, #timer, #gameTimer, #score, #waitingMessage { margin: 10px 0; font-size: 18px; }
-    </style>
 </head>
 <body>
-    <h1>ステージ制クイズゲーム</h1>
+    <h1>クイズゲーム</h1>
 
-    <!-- ステージ開始ボタン -->
-    <button id="startBtn">第一ステージ開始</button>
-    <button id="startBtnStage2">第二ステージ開始</button>
-    <button id="startBtnStage3">第三ステージ開始</button>
-    <button id="startBtnStage4">第四ステージ開始</button>
-
-    <!-- 問題表示 -->
-    <div id="question">ここに問題が表示されます</div>
-
-    <!-- タイマー -->
+    <div id="waitingMessage"></div>
+    <div id="question"></div>
     <div id="timer"></div>
     <div id="gameTimer"></div>
-
-    <!-- スコア -->
     <div id="score"></div>
 
-    <!-- 回答入力 -->
     <input type="text" id="answerInput" placeholder="答えを入力">
     <button id="answerBtn">回答</button>
 
-    <!-- 第四ステージ用クリアボタン -->
-    <button id="clearBtn">ゲームクリア</button>
+    <div>
+        <button id="startBtn">第一ステージスタート</button>
+        <button id="startBtnStage2" style="display:none;">第二ステージスタート</button>
+        <button id="startBtnStage3" style="display:none;">第三ステージスタート</button>
+        <button id="startBtnStage4" style="display:none;">第四ステージスタート</button>
+    </div>
 
-    <!-- 待機・通知メッセージ -->
-    <div id="waitingMessage" style="color:red; font-weight:bold;"></div>
+    <div id="stage4Area" style="display:none;">
+        <button id="stage4ClearBtn">ゲームクリア</button>
+    </div>
 
     <script src="script.js"></script>
 </body>
 </html>
+
 
