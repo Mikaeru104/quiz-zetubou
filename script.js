@@ -1,27 +1,30 @@
-const ws = new WebSocket('ws://localhost:8080');
+const socket = new WebSocket("ws://localhost:3000");
 
-ws.onmessage = (event) => {
+socket.onopen = () => {
+  console.log("WebSocket connected!");
+};
+
+socket.onmessage = (event) => {
   const msg = JSON.parse(event.data);
 
-  if (msg.type === 'question') {
-    document.getElementById('question').innerText = msg.question;
-    document.getElementById('startBtn').style.display = "none";
-  } else if (msg.type === 'gameTimer') {
-    document.getElementById('gameTimer').innerText = `残り時間: ${msg.timeLeft}秒`;
-  } else if (msg.type === 'score') {
-    document.getElementById('score').innerText = `スコア: ${msg.score}`;
-  } else if (msg.type === 'end') {
-    document.getElementById('question').innerText = msg.message;
-    document.getElementById('startBtn').style.display = "inline-block";
+  if (msg.type === "info") {
+    document.getElementById("status").innerText = msg.message;
+  }
+
+  if (msg.type === "waiting") {
+    document.getElementById("status").innerText = msg.message;
+  }
+
+  if (msg.type === "question") {
+    document.getElementById("status").innerText = "問題: " + msg.question;
+  }
+
+  if (msg.type === "end") {
+    document.getElementById("status").innerText = msg.message;
   }
 };
 
-document.getElementById('startBtn').addEventListener('click', () => {
-  ws.send(JSON.stringify({ type: 'start' }));
-  document.getElementById('startBtn').style.display = "none";
-});
+function startGame() {
+  socket.send(JSON.stringify({ type: "start" }));
+}
 
-document.getElementById('answerBtn').addEventListener('click', () => {
-  const answer = document.getElementById('answerInput').value;
-  ws.send(JSON.stringify({ type: 'answer', answer }));
-});
