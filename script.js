@@ -1,50 +1,83 @@
-const socket = new WebSocket("ws://localhost:3000");
+const ws = new WebSocket("ws://localhost:3000"); // 本番は wss:// に変更
 
-socket.onopen = () => {
-  console.log("WebSocket connected!");
-  document.getElementById("status").innerText = "接続完了！スタートボタンを押してください";
+let currentStage = 1; // 1:かくれんぼ, 2:絵しりとり
+
+const stageTitle = document.querySelector("h1");
+const waitingMessage = document.getElementById("waitingMessage");
+const questionDiv = document.getElementById("question");
+const timerDiv = document.getElementById("timer");
+const gameTimerDiv = document.getElementById("gameTimer");
+const scoreDiv = document.getElementById("score");
+const startBtn = document.getElementById("startBtn");
+const answerInput = document.getElementById("answerInput");
+const answerBtn = document.getElementById("answerBtn");
+
+// ======================
+// WebSocket 接続
+// ======================
+ws.onopen = () => {
+    console.log("WebSocket接続成功");
+
+    // ステージに参加
+    ws.send(JSON.stringify({ type: "join", stage: currentStage }));
 };
 
-socket.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
+// ======================
+// メッセージ受信
+// ======================
+ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
 
-  if (msg.type === "info") {
-    document.getElementById("status").innerText = msg.message;
-  }
-
-  if (msg.type === "waiting") {
-    document.getElementById("status").innerText = msg.message;
-  }
-
-  if (msg.type === "stage") {
-    // ステージ名をタイトルに反映
-    document.getElementById("gameTitle").innerText = msg.name;
-  }
-
-  if (msg.type === "question") {
-    document.getElementById("status").innerText = "問題: " + msg.question;
-    document.getElementById("answerSection").style.display = "block";
-  }
-
-  if (msg.type === "end") {
-    document.getElementById("status").innerText = msg.message;
-    document.getElementById("startBtn").style.display = "block";
-    document.getElementById("answerSection").style.display = "none";
-  }
+    switch (msg.type) {
+        case "stage":
+            stageTitle.innerText = msg.name;
+            break;
+        case "waiting":
+            waitingMessage.innerText = msg.message;
+            break;
+        case "question":
+            questionDiv.innerText = `問題: ${msg.question}`;
+            timerDiv.innerText = "20"; // 問題タイマー初期値
+            waitingMessage.innerText = "";
+            break;
+        case "questionTimer":
+            timerDiv.innerText = msg.timeLeft;
+            break;
+        case "gameTimer":
+            gameTimerDiv.innerText = `残り時間: ${msg.timeLeft}秒`;
+            break;
+        case "score":
+            scoreDiv.innerText = `スコア: ${msg.score}`;
+            break;
+        case "end":
+            questionDiv.innerText = msg.message;
+            timerDiv.innerText = "";
+            startBtn.style.display = "inline-block"; // ゲーム終了後にスタートボタン再表示
+            break;
+        case "info":
+            waitingMessage.innerText = msg.message;
+            break;
+        default:
+            console.log("不明なメッセージ:", msg);
+    }
 };
 
-function startGame() {
-  socket.send(JSON.stringify({ type: "start" }));
-  document.getElementById("status").innerText = "準備中...";
-  document.getElementById("startBtn").style.display = "none";
-}
+// ======================
+// スタートボタン
+// ======================
+startBtn.addEventListener("click", () => {
+    ws.send(JSON.stringify({ type: "start", stage: currentStage }));
+    waitingMessage.innerText = "準備中...";
+    questionDiv.innerText = "ゲーム開始準備中...";
+    startBtn.style.display = "none"; // 押したら非表示
+});
 
-function sendAnswer() {
-  const answer = document.getElementById("answerInput").value.trim();
-  if (answer) {
-    socket.send(JSON.stringify({ type: "answer", answer }));
-    document.getElementById("answerInput").value = "";
-  }
-}
-
-
+// ======================
+// 回答ボタン
+// ======================
+answerBtn.addEventListener("click", () => {
+    const answer = answerInput.value.trim();
+    if (!answer) return;
+    ws.send(JSON.stringify({ type: "answer", answer: answer, stage: currentStage }));
+    answerInput.value = "";
+});
