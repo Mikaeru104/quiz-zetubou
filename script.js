@@ -54,3 +54,4 @@ document.getElementById('answerBtn').addEventListener('click', () => {
     const answer = document.getElementById('answerInput').value;
     ws.send(JSON.stringify({ type: 'answer', answer }));
 });
+
