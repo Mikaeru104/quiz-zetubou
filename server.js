@@ -28,7 +28,6 @@ const stage3Questions = [
     { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
     { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
     { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
-    { question: "最後の確認問題：適当に入力してください", correctAnswer: "OK" } // ダミーで4問目
 ];
 
 const requiredPlayersStage1 = 4;
