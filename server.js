@@ -403,17 +403,69 @@ function startStage3(stagePlayers) {
     sendNextQuestion();
 }
 
+// ======================
+// 第三ステージ終了後にクリア者へ第四ステージ解放
+// ======================
 function endStage3(stagePlayers) {
     stagePlayers.forEach(p => {
-        let msg = `第三ステージ終了！スコア: ${p.scoreStage3}点`;
-        if (p.scoreStage3 >= 80) {
-            msg += "\n第三ステージクリア！おめでとう！";
+        let msg = `第三ステージ終了！スコア: ${p.scoreStage3 || 0}点`;
+        if (p.scoreStage3 >= 50) {
+            msg += "\n第三ステージクリア！第四ステージへ進めます";
+            // 第四ステージスタートボタンを解放
+            p.ws.send(JSON.stringify({ type: 'showClearButton' }));
+        } else {
+            msg += "\n残念ながら進出できません";
+        }
+        p.ws.send(JSON.stringify({ type: 'end', message: msg }));
+    });
+}
+
+// ======================
+// 第四ステージ
+// ======================
+function startStage4(stagePlayers) {
+    stagePlayers.forEach(p => {
+        p.scoreStage4 = 0;
+        p.answered = false;
+        p.ready = false;
+    });
+
+    let timeLeft = 180;
+    const gTimer = setInterval(() => {
+        timeLeft--;
+        stagePlayers.forEach(p => 
+            p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }))
+        );
+        if (timeLeft <= 0) {
+            clearInterval(gTimer);
+            endStage4(stagePlayers);
+        }
+    }, 1000);
+
+    stagePlayers.forEach(p => {
+        p.handleAnswer = (plr, answer) => {
+            if (answer === "CLEAR" && !plr.answered) {
+                plr.scoreStage4 = 100;
+                plr.answered = true;
+                clearInterval(gTimer);
+                endStage4(stagePlayers);
+            }
+        };
+    });
+}
+
+function endStage4(stagePlayers) {
+    stagePlayers.forEach(p => {
+        let msg = `第四ステージ終了！スコア: ${p.scoreStage4}点`;
+        if (p.scoreStage4 >= 100) {
+            msg += "\n第四ステージクリア！おめでとう！";
         } else {
             msg += "\nクリアならず";
         }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
+
 
 // ======================
 // サーバー起動
