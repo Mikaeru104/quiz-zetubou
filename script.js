@@ -25,7 +25,10 @@ ws.onmessage = (event) => {
         case 'end':
             document.getElementById('question').innerText = message.message;
             document.getElementById('timer').innerText = "";
-            document.getElementById('startBtn').style.display = "inline-block";
+            // クリア者にはunlockStage2が来るので、ここでは不合格者のみ第一ステージボタンを再表示
+            if (!message.message.includes("第一ステージクリア")) {
+                document.getElementById('startBtn').style.display = "inline-block";
+            }
             break;
         case 'score':
             document.getElementById('score').innerText = `スコア: ${message.score}`;
@@ -36,27 +39,40 @@ ws.onmessage = (event) => {
         case 'stage':
             document.querySelector('h1').innerText = message.name;
             break;
+        case 'unlockStage2':
+            // 第一ステージクリア者には第二ステージボタンを表示
+            document.getElementById('startBtnStage2').style.display = "inline-block";
+            break;
     }
 };
 
+// 第一ステージ開始ボタン
 document.getElementById('startBtn').addEventListener('click', () => {
-    console.log('スタートボタン押下');
+    console.log('第一ステージスタート押下');
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         alert('WebSocket未接続です');
         return;
     }
-
-    const stageName = document.querySelector('h1').innerText.trim();
-    const stage = stageName === "かくれんぼ" ? 1 : 2;
-    console.log("stage送信:", stage);
-
-    ws.send(JSON.stringify({ type: 'start', stage }));
-
+    ws.send(JSON.stringify({ type: 'start', stage: 1 }));
     document.getElementById('waitingMessage').innerText = "準備中...";
     document.getElementById('question').innerText = "クイズ中...";
     document.getElementById('startBtn').style.display = "none";
 });
 
+// 第二ステージ開始ボタン
+document.getElementById('startBtnStage2').addEventListener('click', () => {
+    console.log('第二ステージスタート押下');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未接続です');
+        return;
+    }
+    ws.send(JSON.stringify({ type: 'start', stage: 2 }));
+    document.getElementById('waitingMessage').innerText = "準備中...";
+    document.getElementById('question').innerText = "クイズ中...";
+    document.getElementById('startBtnStage2').style.display = "none";
+});
+
+// 回答ボタン
 document.getElementById('answerBtn').addEventListener('click', () => {
     const answer = document.getElementById('answerInput').value;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -65,4 +81,3 @@ document.getElementById('answerBtn').addEventListener('click', () => {
     }
     ws.send(JSON.stringify({ type: 'answer', answer }));
 });
-
