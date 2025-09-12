@@ -1,51 +1,76 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>クイズゲーム</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-        }
-        #gameContainer {
-            background: #fff;
-            padding: 20px 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-        #answerInput { padding:5px; font-size:16px; }
-        button { padding:10px 20px; font-size:16px; margin:5px; }
-        #startBtnStage2, #startBtnStage3, #startBtnStage4 { display:none; }
-        #clearBtn { display:none; padding:10px 20px; font-size:16px; background:green; color:#fff; border:none; border-radius:5px; cursor:pointer; }
-        #timer, #gameTimer, #score, #waitingMessage { margin:10px 0; font-weight:bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クイズゲーム</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+    }
+    .container {
+        background-color: white;
+        padding: 30px 40px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        text-align: center;
+        width: 90%;
+        max-width: 500px;
+    }
+    h1 {
+        margin-bottom: 20px;
+    }
+    #question {
+        font-size: 1.2em;
+        margin: 15px 0;
+        min-height: 40px;
+    }
+    #timer, #gameTimer, #score, #waitingMessage {
+        margin: 8px 0;
+        font-weight: bold;
+    }
+    input {
+        padding: 8px;
+        width: 70%;
+        margin-right: 10px;
+    }
+    button {
+        padding: 8px 15px;
+        font-size: 1em;
+        margin: 5px;
+        cursor: pointer;
+    }
+    #startBtnStage2, #startBtnStage3, #startBtnStage4 {
+        display: none;
+    }
+</style>
 </head>
 <body>
-    <div id="gameContainer">
-        <h1>クイズゲーム</h1>
-        <div id="gameTimer"></div>
-        <div id="question">ここに問題が表示されます</div>
-        <input type="text" id="answerInput" placeholder="答えを入力">
+<div class="container">
+    <h1>第一ステージ</h1>
+    <div id="gameTimer"></div>
+    <div id="question">サーバー接続待ち...</div>
+    <div>
+        <input type="text" id="answerInput" placeholder="回答を入力">
         <button id="answerBtn">回答</button>
+    </div>
+    <div id="timer"></div>
+    <div id="score"></div>
+    <div id="waitingMessage"></div>
+    <div>
         <button id="startBtn">第一ステージスタート</button>
         <button id="startBtnStage2">第二ステージスタート</button>
         <button id="startBtnStage3">第三ステージスタート</button>
         <button id="startBtnStage4">第四ステージスタート</button>
-        <button id="clearBtn">ゲームクリア！</button>
-        <div id="timer"></div>
-        <div id="score"></div>
-        <div id="waitingMessage"></div>
     </div>
-
-    <script src="script.js"></script>
+</div>
+<script src="script.js"></script>
 </body>
 </html>
 
