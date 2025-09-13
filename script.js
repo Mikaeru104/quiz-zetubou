@@ -34,7 +34,14 @@ ws.onmessage = (event) => {
             document.getElementById('question').innerText = message.message;
             document.getElementById('timer').innerText = "";
             document.getElementById('clearBtn').style.display = "none"; // 終了時にクリアボタンを消す
+
+            // ★ 全ステージ共通: クリア失敗した端末は回答ボタンを削除
+            if (message.message.includes("クリアならず")) {
+            document.getElementById('answerBtn').style.display = "none";
+            document.getElementById('answerInput').style.display = "none";
+            }
             break;
+
 
         case 'score':
             document.getElementById('score').innerText = `スコア: ${message.score}`;
