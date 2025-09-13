@@ -475,13 +475,14 @@ function endStage4(stagePlayers) {
     stagePlayers.forEach(p => {
         let msg = `第四ステージ終了！スコア: ${p.scoreStage4}点`;
         if (p.scoreStage4 >= 100) {
-            msg += "\n第四ステージクリア！おめでとう！";
+            msg += "\n絶棒クリア！おめでとう！"; // ← メッセージ修正
         } else {
             msg += "\nクリアならず";
         }
         p.ws.send(JSON.stringify({ type: 'end', message: msg }));
     });
 }
+
 
 
 // ======================
