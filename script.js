@@ -33,6 +33,7 @@ ws.onmessage = (event) => {
         case 'end':
             document.getElementById('question').innerText = message.message;
             document.getElementById('timer').innerText = "";
+            document.getElementById('clearBtn').style.display = "none"; // 終了時にクリアボタンを消す
             break;
 
         case 'score':
@@ -103,6 +104,13 @@ document.getElementById('startBtnStage4').addEventListener('click', () => {
     document.getElementById('waitingMessage').innerText = "準備中...";
     document.getElementById('question').innerText = "絶棒開始...";
     document.getElementById('startBtnStage4').style.display = "none";
+    document.getElementById('clearBtn').style.display = "inline-block"; // ★クリアボタン表示
+});
+
+// クリアボタン
+document.getElementById('clearBtn').addEventListener('click', () => {
+    ws.send(JSON.stringify({ type: 'answer', answer: "CLEAR", stage: currentStage }));
+    document.getElementById('clearBtn').style.display = "none"; // 押したら非表示
 });
 
 // 回答ボタン
