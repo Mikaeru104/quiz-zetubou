@@ -12,7 +12,7 @@
         #timer { font-size: 20px; margin-top: 20px; }
         #score { font-size: 20px; margin-top: 20px; }
         #answerInput { font-size: 20px; margin-top: 20px; }
-        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3, #startBtnStage4 {
+        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3, #startBtnStage4, #clearBtn {
             padding: 10px 20px; font-size: 18px; cursor: pointer;
             border: none; border-radius: 5px; color: white;
         }
@@ -21,6 +21,7 @@
         #startBtnStage2 { background-color: #FF9800; display: none; margin-top: 20px; }
         #startBtnStage3 { background-color: #9C27B0; display: none; margin-top: 20px; }
         #startBtnStage4 { background-color: #E91E63; display: none; margin-top: 20px; }
+        #clearBtn { background-color: #4CAF50; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -28,9 +29,7 @@
     <h1>かくれんぼ</h1>
 
     <div id="waitingMessage"></div>
-
     <div id="gameTimer">120</div>
-
     <div id="question"></div>
     <div id="timer">20</div>
 
@@ -39,6 +38,9 @@
     <button id="startBtnStage2">第二ステージスタート</button>
     <button id="startBtnStage3">第三ステージスタート</button>
     <button id="startBtnStage4">第四ステージスタート</button>
+
+    <!-- クリアボタン（第四ステージ専用） -->
+    <button id="clearBtn">クリア</button>
 
     <div>
         <input type="text" id="answerInput" placeholder="答えを入力">
@@ -50,6 +52,7 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
