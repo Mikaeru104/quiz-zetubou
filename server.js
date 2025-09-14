@@ -423,7 +423,7 @@ function startStage3(stagePlayers) {
 function endStage3(stagePlayers) {
     stagePlayers.forEach(p => {
         let msg = `第三ステージ終了！スコア: ${p.scoreStage3 || 0}点`;
-        if (p.scoreStage3 >= 50) {
+        if (p.scoreStage3 >= 80) {
             msg += "\n第三ステージクリア！第四ステージへ進めます";
             p.clearedStage3 = true; // ←★ これを追加
             // 第四ステージスタートボタンを解放
