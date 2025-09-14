@@ -8,6 +8,13 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         #waitingMessage { color: red; font-weight: bold; }
         #gameTimer { position: fixed; top: 10px; right: 10px; font-size: 24px; font-weight: bold; }
+
+        /* ← タイトルの位置を下げる */
+        h1 {
+            margin-top: 60px;  /* 好みに応じて数値を調整 (例: 80px にするともっと下がります) */
+            font-size: 32px;
+        }
+
         #question { margin-top: 50px; font-size: 24px; font-weight: bold; }
         #timer { font-size: 20px; margin-top: 20px; }
         #score { font-size: 20px; margin-top: 20px; }
@@ -23,6 +30,7 @@
         #startBtnStage4 { background-color: #E91E63; display: none; margin-top: 20px; }
         #clearBtn { background-color: #4CAF50; display: none; margin-top: 20px; }
     </style>
+
 </head>
 <body>
     <!-- ステージ名 -->
