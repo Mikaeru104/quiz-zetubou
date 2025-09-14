@@ -42,6 +42,7 @@ const requiredPlayersStage2 = 3;
 wss.on('connection', (ws) => {
     console.log('新しいクライアント接続');
 
+    // 各プレイヤーにゲーム状態を持たせる
     players.push({
         ws,
         scoreStage1: 0,
@@ -54,8 +55,10 @@ wss.on('connection', (ws) => {
         handleAnswer: null,
         clearedStage1: false,
         clearedStage2: false,
-        clearedStage3: false
+        clearedStage3: false,
+        gameState: {} // ★ ステージごとの状態
     });
+
 
     ws.on('message', (message) => {
         const msg = JSON.parse(message);
@@ -255,45 +258,48 @@ function endStage1(stagePlayers) {
 // 第二ステージ
 // ======================
 function startStage2(stagePlayers) {
+    const question = stage2Questions[0];
+
     stagePlayers.forEach(p => {
         p.scoreStage2 = 0;
-        p.answered = false;
         p.ready = false;
+        p.answered = false;
+
+        // 個別状態を持たせる
+        p.gameState = {
+            stage: 2,
+            answeredPlayers: [],
+            timer: null
+        };
+
+        // タイマー個別
+        let timeLeft = 120;
+        p.gameState.timer = setInterval(() => {
+            timeLeft--;
+            p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }));
+            if (timeLeft <= 0) {
+                clearInterval(p.gameState.timer);
+                endStage2([p], p.gameState.answeredPlayers);
+            }
+        }, 1000);
+
+        p.ws.send(JSON.stringify({ type: 'stage', name: '絵しりとり', stage: 2 }));
+        p.ws.send(JSON.stringify({ type: 'question', question: question.question }));
+
+        // 回答処理も個別
+        p.handleAnswer = (player, answer) => {
+            if (player.answered) return;
+            if (question.correctAnswers.includes(answer.trim())) {
+                player.answered = true;
+                p.gameState.answeredPlayers.push(player);
+                player.ws.send(JSON.stringify({ type: 'waiting', message: '回答完了しました' }));
+                clearInterval(p.gameState.timer);
+                endStage2([player], p.gameState.answeredPlayers);
+            }
+        };
     });
+}
 
-    const question = stage2Questions[0];
-    let answeredPlayers = [];
-    let timeLeft = 120;
-
-    const gameTimer = setInterval(() => {
-        timeLeft--;
-        stagePlayers.forEach(p =>
-            p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }))
-        );
-        if (timeLeft <= 0) {
-            clearInterval(gameTimer);
-            endStage2(stagePlayers, answeredPlayers);
-        }
-    }, 1000);
-
-    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: '絵しりとり', stage: 2 })));
-    stagePlayers.forEach(p => p.ws.send(JSON.stringify({ type: 'question', question: question.question })));
-
-    function handleAnswer(player, answer) {
-        if (!player || player.answered) return;
-        if (question.correctAnswers.includes(answer.trim())) {
-            player.answered = true;
-            answeredPlayers.push(player);
-            player.ws.send(JSON.stringify({
-                type: 'waiting',
-                message: '回答完了しました'
-            }));
-        }
-        if (answeredPlayers.length === stagePlayers.length) {
-            clearInterval(gameTimer);
-            endStage2(stagePlayers, answeredPlayers);
-        }
-    }
 
     stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
 }
@@ -326,52 +332,56 @@ function endStage2(stagePlayers, answeredPlayers) {
 function startStage3(stagePlayers) {
     const player = stagePlayers[0];
     player.scoreStage3 = 0;
-    player.answered = false;
     player.ready = false;
+    player.answered = false;
 
-    let questionIndex = 0;
-    let timeLeft = 120;
+    player.gameState = {
+        stage: 3,
+        questionIndex: 0,
+        timer: null
+    };
 
     player.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 }));
 
-    const gameTimer = setInterval(() => {
+    let timeLeft = 120;
+    player.gameState.timer = setInterval(() => {
         timeLeft--;
         player.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }));
         if (timeLeft <= 0) {
-            clearInterval(gameTimer);
+            clearInterval(player.gameState.timer);
             endStage3([player]);
         }
     }, 1000);
 
-    function sendNextQuestion() {
-        if (questionIndex < stage3Questions.length) {
-            const q = stage3Questions[questionIndex];
-            player.answered = false;
-            player.ws.send(JSON.stringify({
-                type: 'question',
-                question: q.question,
-                index: questionIndex,
-                timeLeft: 40
-            }));
-            startQuestionTimer();
-        } else {
-            clearInterval(gameTimer);
-            endStage3([player]);
-        }
-    }
+    sendNextQuestion();
 
-    function startQuestionTimer() {
+    function sendNextQuestion() {
+        if (player.gameState.questionIndex >= stage3Questions.length) {
+            clearInterval(player.gameState.timer);
+            endStage3([player]);
+            return;
+        }
+
+        const q = stage3Questions[player.gameState.questionIndex];
+        player.answered = false;
+        player.ws.send(JSON.stringify({
+            type: 'question',
+            question: q.question,
+            index: player.gameState.questionIndex,
+            timeLeft: 40
+        }));
+
         let qTime = 40;
         const questionTimer = setInterval(() => {
             qTime--;
             player.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime }));
-
             if (qTime <= 0) {
                 clearInterval(questionTimer);
-                questionIndex++;
+                player.gameState.questionIndex++;
                 setTimeout(sendNextQuestion, 2000);
             }
         }, 1000);
+
 
         player.handleAnswer = (plr, answer) => {
             if (!plr || plr.answered) return;
