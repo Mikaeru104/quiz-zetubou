@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname)));
 let players = [];
 
 // ======================
-// 質問データ
+// 問題データ
 // ======================
 const stage1Questions = [
     { question: "104", correctAnswer: "T" },
@@ -63,22 +63,29 @@ class StageGame {
 
         // ステージ名送信
         if (this.stageName) {
-            players.forEach(p =>
-                p.ws.send(JSON.stringify({ type: 'stage', name: this.stageName, stage: this.stage }))
-            );
+            this.broadcast({ type: 'stage', name: this.stageName, stage: this.stage });
         }
 
         this.startGameTimer();
         this.sendNextQuestion();
     }
 
+    // 共通送信メソッド
+    broadcast(data) {
+        this.players.forEach(p => {
+            try {
+                p.ws.send(JSON.stringify(data));
+            } catch (e) {
+                console.error("送信エラー:", e);
+            }
+        });
+    }
+
     startGameTimer() {
         let timeLeft = this.totalTime;
         this.gameTimer = setInterval(() => {
             timeLeft--;
-            this.players.forEach(p =>
-                p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft }))
-            );
+            this.broadcast({ type: 'gameTimer', timeLeft });
             if (timeLeft <= 0) {
                 clearInterval(this.gameTimer);
                 this.endGame();
@@ -92,14 +99,13 @@ class StageGame {
         }
 
         const q = this.questions[this.currentQuestionIndex];
-        this.players.forEach(p => {
-            p.answered = false;
-            p.ws.send(JSON.stringify({
-                type: 'question',
-                question: q.question,
-                index: this.currentQuestionIndex,
-                timeLeft: this.questionTime
-            }));
+        this.players.forEach(p => (p.answered = false));
+
+        this.broadcast({
+            type: 'question',
+            question: q.question,
+            index: this.currentQuestionIndex,
+            timeLeft: this.questionTime
         });
 
         this.startQuestionTimer();
@@ -109,9 +115,7 @@ class StageGame {
         let qTime = this.questionTime;
         this.questionTimer = setInterval(() => {
             qTime--;
-            this.players.forEach(p =>
-                p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime }))
-            );
+            this.broadcast({ type: 'questionTimer', timeLeft: qTime });
             if (qTime <= 0) {
                 clearInterval(this.questionTimer);
                 this.currentQuestionIndex++;
@@ -121,7 +125,6 @@ class StageGame {
     }
 
     handleAnswer(player, answer) {
-        // ステージごとに別処理する
         switch (this.stage) {
             case 1:
                 this.handleStage1Answer(player, answer);
@@ -389,4 +392,5 @@ function endStage4(stagePlayers) {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
+     
 
