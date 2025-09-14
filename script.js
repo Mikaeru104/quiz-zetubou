@@ -127,6 +127,13 @@ document.getElementById('answerBtn').addEventListener('click', () => {
         alert('WebSocket未接続です');
         return;
     }
+
+    // ★ 追加機能：第四ステージクリア後に「1025」と入力で証書ページへ
+    if (currentStage === 4 && answer.trim() === "1025") {
+        window.location.href = "絶望の砦＿脱出証.png"; // 送ってくれた画像のファイル名に合わせてください
+        return;
+    }
+
     ws.send(JSON.stringify({
         type: 'answer',
         answer,
@@ -135,5 +142,6 @@ document.getElementById('answerBtn').addEventListener('click', () => {
     }));
     document.getElementById('answerInput').value = "";
 });
+
 
  
