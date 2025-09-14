@@ -300,10 +300,6 @@ function startStage2(stagePlayers) {
     });
 }
 
-
-    stagePlayers.forEach(p => p.handleAnswer = handleAnswer);
-}
-
 function endStage2(stagePlayers, answeredPlayers) {
     const sorted = [...answeredPlayers];
 
@@ -352,8 +348,6 @@ function startStage3(stagePlayers) {
             endStage3([player]);
         }
     }, 1000);
-
-    sendNextQuestion();
 
     function sendNextQuestion() {
         if (player.gameState.questionIndex >= stage3Questions.length) {
