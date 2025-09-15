@@ -216,6 +216,9 @@ wss.on('connection', (ws) => {
 // 第一ステージ（並行セッション対応）
 // ==================================================
 function startStage1(sessionPlayers) {
+    // ★問題をシャッフルしてコピー
+    const shuffledQuestions = [...stage1Questions].sort(() => Math.random() - 0.5);
+
     // セッションオブジェクト
     const session = {
         players: sessionPlayers,
@@ -223,7 +226,8 @@ function startStage1(sessionPlayers) {
         answeredPlayers: [],
         timeLeft: 120,
         gameTimer: null,
-        questionTimer: null
+        questionTimer: null,
+        questions: shuffledQuestions   // ← コピーを保存
     };
     stage1Sessions.push(session);
 
@@ -247,8 +251,8 @@ function startStage1(sessionPlayers) {
     }, 1000);
 
     function sendNextQuestion() {
-        if (session.questionIndex < stage1Questions.length) {
-            const q = stage1Questions[session.questionIndex];
+        if (session.questionIndex < session.questions.length) {
+            const q = session.questions[session.questionIndex];  // ← シャッフル済みの問題を使う
             // 各プレイヤーに問題を送る
             session.players.forEach(p => {
                 p.answered = false;
@@ -265,7 +269,6 @@ function startStage1(sessionPlayers) {
 
     function startQuestionTimer() {
         let qTime = 20;
-        // 既存の questionTimer があればクリア
         if (session.questionTimer) clearInterval(session.questionTimer);
 
         session.questionTimer = setInterval(() => {
@@ -273,34 +276,28 @@ function startStage1(sessionPlayers) {
             session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime })));
             if (qTime <= 0) {
                 clearInterval(session.questionTimer);
-                // スコア配布
                 assignScoresStage1();
-                // reset answered
                 session.players.forEach(p => p.answered = false);
                 session.answeredPlayers = [];
                 session.questionIndex++;
-                // 少し待って次
                 setTimeout(sendNextQuestion, 2000);
             }
         }, 1000);
 
-        // 各プレイヤーの handleAnswer をこの質問用に設定
+        // 回答ハンドラ
         session.players.forEach(p => {
             p.handleAnswer = (player, answer) => {
                 if (!player || player.answered) return;
-                const correct = stage1Questions[session.questionIndex].correctAnswer;
+                const correct = session.questions[session.questionIndex].correctAnswer;  // ← コピーから答えを参照
                 if (answer && answer.trim().toUpperCase() === correct) {
                     player.answered = true;
                     session.answeredPlayers.push(player);
                     player.ws.send(JSON.stringify({ type: 'waiting', message: '次の問題をお待ちください...' }));
                 } else {
-                    // 不正解でも回答済みにする（元の挙動に合わせるなら不要）
                     player.answered = true;
-                    // ただし不正解メッセージは出さない（元コードと同様）
                     player.ws.send(JSON.stringify({ type: 'waiting', message: '次の問題をお待ちください...' }));
                 }
 
-                // 全員または特定条件で早期に次へ
                 if (session.players.every(pl => pl.answered)) {
                     clearInterval(session.questionTimer);
                     assignScoresStage1();
@@ -326,6 +323,7 @@ function startStage1(sessionPlayers) {
     // セッション開始
     sendNextQuestion();
 }
+
 
 function endStage1(session) {
     // 最終順位付け
