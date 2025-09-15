@@ -18,7 +18,21 @@ const stage1Questions = [
     { question: "638", correctAnswer: "Z" },
     { question: "946", correctAnswer: "S" },
     { question: "233", correctAnswer: "W" },
-    { question: "578", correctAnswer: "G" }
+    { question: "578", correctAnswer: "G" },
+    { question: "482", correctAnswer: "K" },
+    { question: "037", correctAnswer: "M" },
+    { question: "915", correctAnswer: "R" },
+    { question: "624", correctAnswer: "N" },
+    { question: "308", correctAnswer: "F" },
+    { question: "771", correctAnswer: "Z" },
+    { question: "459", correctAnswer: "Q" },
+    { question: "186", correctAnswer: "C" },
+    { question: "520", correctAnswer: "L" },
+    { question: "893", correctAnswer: "E" },
+    { question: "244", correctAnswer: "X" },
+    { question: "639", correctAnswer: "H" },
+    { question: "052", correctAnswer: "J" },
+    { question: "707", correctAnswer: "P" },
 ];
 
 const stage2Questions = [
