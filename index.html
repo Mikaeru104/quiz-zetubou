@@ -5,32 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>クイズアプリ</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #waitingMessage { color: red; font-weight: bold; }
-        #gameTimer { position: fixed; top: 10px; right: 10px; font-size: 24px; font-weight: bold; }
+        body { 
+            font-family: 'Orbitron', sans-serif; /* 未来的なフォント */
+            text-align: center; 
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            color: #fff; 
+        }
+        #waitingMessage { 
+            color: #FF1744; 
+            font-weight: bold; 
+            text-shadow: 0 0 8px #FF5252, 0 0 15px #FF1744; 
+            font-size: 22px;
+        }
+        #gameTimer { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            font-size: 28px; 
+            font-weight: bold; 
+            background: rgba(0,0,0,0.6); 
+            padding: 8px 15px; 
+            border-radius: 12px;
+            color: #FFD700;
+            text-shadow: 0 0 10px #FFA500, 0 0 20px #FFD700;
+        }
 
-        /* ← タイトルの位置を下げる */
         h1 {
-            margin-top: 60px;  /* 好みに応じて数値を調整 (例: 80px にするともっと下がります) */
-            font-size: 32px;
+            margin-top: 60px;  
+            font-size: 48px;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, #FFD700, #FF8C00, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255,215,0,0.8);
         }
 
-        #question { margin-top: 50px; font-size: 24px; font-weight: bold; }
-        #timer { font-size: 20px; margin-top: 20px; }
-        #score { font-size: 20px; margin-top: 20px; }
-        #answerInput { font-size: 20px; margin-top: 20px; }
-        #answerBtn, #startBtn, #startBtnStage2, #startBtnStage3, #startBtnStage4, #clearBtn {
-            padding: 10px 20px; font-size: 18px; cursor: pointer;
-            border: none; border-radius: 5px; color: white;
+        #question { 
+            margin-top: 50px; 
+            font-size: 28px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px cyan, 0 0 20px blue; 
         }
-        #answerBtn { background-color: #4CAF50; }
-        #startBtn { background-color: #2196F3; display: inline-block; margin-top: 20px; }
-        #startBtnStage2 { background-color: #FF9800; display: none; margin-top: 20px; }
-        #startBtnStage3 { background-color: #9C27B0; display: none; margin-top: 20px; }
-        #startBtnStage4 { background-color: #E91E63; display: none; margin-top: 20px; }
-        #clearBtn { background-color: #4CAF50; display: none; margin-top: 20px; }
+        #timer, #score { 
+            font-size: 22px; 
+            margin-top: 20px; 
+            text-shadow: 0 0 10px #fff;
+        }
+        #answerInput { 
+            font-size: 22px; 
+            margin-top: 20px; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 2px solid #444; 
+            background: #111; 
+            color: #0ff; 
+            text-align: center; 
+            text-shadow: 0 0 5px cyan; 
+        }
+
+        button {
+            padding: 14px 28px; 
+            font-size: 22px; 
+            cursor: pointer;
+            border: none; 
+            border-radius: 12px; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.3s, background 0.3s;
+        }
+        button:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 25px white;
+        }
+
+        /* ステージボタン */
+        #startBtn { 
+            background: linear-gradient(135deg, #FFD700, #FFA500); 
+            color: black; 
+            text-shadow: 0 0 10px white, 0 0 15px gold;
+        }
+        #startBtnStage2 { 
+            background: linear-gradient(135deg, #00E676, #1B5E20); 
+            display: none; 
+            text-shadow: 0 0 10px #76FF03, 0 0 20px lime; 
+        }
+        #startBtnStage3 { 
+            background: linear-gradient(135deg, #2196F3, #0D47A1); 
+            display: none; 
+            text-shadow: 0 0 10px #40C4FF, 0 0 20px cyan; 
+        }
+        #startBtnStage4 { 
+            background: linear-gradient(135deg, #FF1744, #B71C1C); 
+            display: none; 
+            text-shadow: 0 0 10px #FF5252, 0 0 20px red; 
+        }
+
+        /* クリアボタン */
+        #clearBtn { 
+            background: linear-gradient(135deg, #00C853, #004D40); 
+            display: none; 
+            text-shadow: 0 0 10px white, 0 0 20px lime;
+        }
+
+        /* 回答ボタン */
+        #answerBtn { 
+            background: linear-gradient(135deg, #4CAF50, #2E7D32); 
+            color: white; 
+            text-shadow: 0 0 10px #A5D6A7, 0 0 15px lime; 
+        }
     </style>
-
+    <!-- Google Fonts 未来的フォント -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- ステージ名 -->
@@ -60,8 +146,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
