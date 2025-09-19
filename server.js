@@ -40,9 +40,9 @@ const stage2Questions = [
 ];
 
 const stage3QuestionsTemplate = [
-    { question: "「新」が乗っているページを答えてください", correctAnswer: "100" },
-    { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "200" },
-    { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "300" },
+    { question: "「新」が乗っているページを答えてください", correctAnswer: "596" },
+    { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "905" },
+    { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "1138" },
 ];
 
 const requiredPlayersStage1 = 4;
@@ -625,7 +625,7 @@ function startStage4(stagePlayers) {
     // 1プレイヤーずつを想定して作る（ただし配列受け取り）
     const session = {
         players: stagePlayers,
-        timeLeft: 180,
+        timeLeft: 150,
         gTimer: null
     };
     stage4Sessions.push(session);
