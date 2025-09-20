@@ -543,7 +543,8 @@ function startStage3(stagePlayers) {
     // 次の問題を送信
     function sendNextQuestion() {
         if (session.questionIndex < stage3Questions.length) {
-            const q = stage3Questions[session.questionIndex];
+            const qIndex = session.questionIndex; // ← この問題専用のインデックス
+            const q = stage3Questions[qIndex];
 
             // 各問題ごとに回答状態リセット
             session.players.forEach(p => p.answered = false);
@@ -553,12 +554,12 @@ function startStage3(stagePlayers) {
                 p.ws.send(JSON.stringify({
                     type: 'question',
                     question: q.question,
-                    index: session.questionIndex,
+                    index: qIndex,
                     timeLeft: 60
                 }))
             );
 
-            startQuestionTimer();
+            startQuestionTimer(qIndex);
         } else {
             // 全問終了
             if (session.gameTimer) clearInterval(session.gameTimer);
@@ -568,7 +569,7 @@ function startStage3(stagePlayers) {
     }
 
     // 問題ごとのタイマー
-    function startQuestionTimer() {
+    function startQuestionTimer(qIndex) {
         let qTime = 60;
         if (session.questionTimer) clearInterval(session.questionTimer);
 
@@ -587,9 +588,9 @@ function startStage3(stagePlayers) {
         // 回答ハンドラを設定（この問題専用）
         session.players.forEach(p => {
             p.handleAnswer = (player, answer) => {
-                if (!player || player.answered) return; // すでに答えてたら無効
+                if (!player || player.answered) return;
 
-                const correct = stage3Questions[session.questionIndex].correctAnswer;
+                const correct = stage3Questions[qIndex].correctAnswer; // ← 固定インデックスで判定
                 if (answer && answer.trim() === correct) {
                     player.scoreStage3 += 30;
                     player.ws.send(JSON.stringify({
