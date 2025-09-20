@@ -46,7 +46,7 @@ const stage3QuestionsTemplate = [
 ];
 
 const requiredPlayersStage1 = 4;
-const requiredPlayersStage2 = 3;
+
 
 // セッション配列（複数同時に走らせるため）
 let stage1Sessions = []; // もし複数必要なら対応。今回は1つで十分だが実装は複数対応
@@ -149,7 +149,7 @@ wss.on('connection', (ws) => {
             }
 
             else if (msg.stage === 2) {
-                // 第二ステージ: 参加条件は clearedStage1 が true の人
+                // 第二ステージ: 第一ステージをクリアしている必要あり
                 if (!player.clearedStage1) {
                     ws.send(JSON.stringify({
                         type: 'waiting',
@@ -158,18 +158,10 @@ wss.on('connection', (ws) => {
                     player.ready = false;
                     return;
                 }
-                // 集めるのは clearedStage1 のうち ready な人
-                const clearedCandidates = players.filter(p => p.clearedStage1 && p.ready);
-                if (clearedCandidates.length >= requiredPlayersStage2) {
-                    const sessionPlayers = clearedCandidates.slice(0, requiredPlayersStage2);
-                    startStage2(sessionPlayers);
-                } else {
-                    ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: `第二ステージ: あと ${requiredPlayersStage2 - clearedCandidates.length} 人のクリア者を待っています...`
-                    }));
-                }
+                // 一人ごとに開始
+                startStage2([player]);
             }
+
 
             else if (msg.stage === 3) {
                 // 第三ステージ: 第二ステージをクリアしたプレイヤーのみ。一人ずつ開始
