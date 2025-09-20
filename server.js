@@ -452,9 +452,7 @@ function endStage2(session) {
 // ==================================================
 function startStage3(stagePlayers) {
     // コピーした質問配列をセッション内で使う（安全）
-    const firstQ = stage3QuestionsTemplate[0];
-    const remainingQs = shuffleArray(stage3QuestionsTemplate.slice(1));
-    const stage3Questions = [firstQ, ...remainingQs];
+    const stage3Questions = JSON.parse(JSON.stringify(stage3QuestionsTemplate));
 
     const session = {
         players: stagePlayers,
@@ -549,6 +547,8 @@ function startStage3(stagePlayers) {
     // 開始
     sendNextQuestion();
 }
+
+
 
 function endStage3(session) {
     session.players.forEach(p => {
