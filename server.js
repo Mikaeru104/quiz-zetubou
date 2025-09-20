@@ -43,6 +43,11 @@ const stage3QuestionsTemplate = [
     { question: "「新」が乗っているページを答えてください", correctAnswer: "596" },
     { question: "「井」と「猿」が乗ってるページの値を和を答えてください", correctAnswer: "905" },
     { question: "「講」と「別」の乗ってるページの値の差をお答えください", correctAnswer: "1138" },
+    { question: "「左」と「冬」の乗ってるページの値の和をお答えください", correctAnswer: "539" },
+    { question: "「近」と「汁」の乗ってるページの値の差をお答えください", correctAnswer: "614" },
+    { question: "「焦」と「扱」の乗ってるページの値の差をお答えください", correctAnswer: "299" },
+    { question: "「荷」と「安」の乗ってるページの値の和をお答えください", correctAnswer: "1505" },
+    
 ];
 
 const requiredPlayersStage1 = 4;
