@@ -221,71 +221,68 @@ wss.on('connection', (ws) => {
 // ==================================================
 // 第一ステージ（かくれんぼ）
 // ==================================================
-function startStage1(sessionPlayers) {
-    // ★問題をシャッフルしてコピー
-    const shuffledQuestions = [...stage1Questions].sort(() => Math.random() - 0.5);
+function startStage3(stagePlayers) {
+    // 1問目は固定、2問目以降をランダム
+    const firstQ = stage3QuestionsTemplate[0];
+    const remainingQs = shuffleArray(stage3QuestionsTemplate.slice(1));
+    const arrangedQuestions = [firstQ, ...remainingQs];
 
-    // セッションオブジェクト
     const session = {
-        players: sessionPlayers,
+        players: stagePlayers,
+        questions: arrangedQuestions,   // ← sessionに保存
         questionIndex: 0,
-        answeredPlayers: [],
-        timeLeft: 120,
+        timeLeft: 180,
         gameTimer: null,
-        questionTimer: null,
-        questions: shuffledQuestions   // ← コピーを保存
+        questionTimer: null
     };
-    stage1Sessions.push(session);
+    stage3Sessions.push(session);
 
     // 初期化
     session.players.forEach(p => {
-        p.scoreStage1 = 0;
+        p.scoreStage3 = 0;
         p.answered = false;
         p.ready = false;
         p.handleAnswer = null;
     });
 
-    // ゲームタイマー
+    // ステージ名送信
+    session.players.forEach(p =>
+        p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 }))
+    );
+
+    // 全体タイマー
     session.gameTimer = setInterval(() => {
         session.timeLeft--;
-        session.players.forEach(p =>
-            p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft: session.timeLeft }))
-        );
+        session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft: session.timeLeft })));
         if (session.timeLeft <= 0) {
-            clearInterval(session.gameTimer);
             if (session.questionTimer) clearInterval(session.questionTimer);
-            endStage1(session);
+            clearInterval(session.gameTimer);
+            endStage3(session);
         }
     }, 1000);
 
-    // 問題を送信
     function sendNextQuestion() {
-        // ★制限時間切れなら問題を送らない
-        if (session.timeLeft <= 0) return;
-
         if (session.questionIndex < session.questions.length) {
             const q = session.questions[session.questionIndex];
-            // 各プレイヤーに問題を送る
-            session.players.forEach(p => {
-                p.answered = false;
+            session.players.forEach(p => p.answered = false);
+            session.players.forEach(p =>
                 p.ws.send(JSON.stringify({
                     type: 'question',
                     question: q.question,
-                    stageName: "かくれんぼ"
-                }));
-            });
+                    index: session.questionIndex,
+                    timeLeft: 60
+                }))
+            );
             startQuestionTimer();
         } else {
-            // 問題終了
-            clearInterval(session.gameTimer);
+            if (session.gameTimer) clearInterval(session.gameTimer);
             if (session.questionTimer) clearInterval(session.questionTimer);
-            endStage1(session);
+            endStage3(session);
         }
     }
 
-    // 問題タイマー
     function startQuestionTimer() {
-        let qTime = 20;
+        let qTime = 60;
         if (session.questionTimer) clearInterval(session.questionTimer);
 
         session.questionTimer = setInterval(() => {
@@ -293,76 +290,39 @@ function startStage1(sessionPlayers) {
             session.players.forEach(p =>
                 p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime }))
             );
-
             if (qTime <= 0) {
                 clearInterval(session.questionTimer);
-                assignScoresStage1();
-                session.players.forEach(p => p.answered = false);
-                session.answeredPlayers = [];
                 session.questionIndex++;
-
-                // ★制限時間切れチェックを追加
-                if (session.timeLeft > 0) {
-                    setTimeout(() => {
-                        if (session.timeLeft > 0) sendNextQuestion();
-                    }, 2000);
-                }
+                setTimeout(sendNextQuestion, 2000);
             }
         }, 1000);
 
-        // 回答ハンドラ
         session.players.forEach(p => {
             p.handleAnswer = (player, answer) => {
                 if (!player || player.answered) return;
                 const correct = session.questions[session.questionIndex].correctAnswer;
-                if (answer && answer.trim().toUpperCase() === correct) {
-                    player.answered = true;
-                    session.answeredPlayers.push(player);
-                    player.ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: '正解、次の問題をお待ちください...'
-                    }));
+                if (answer && answer.trim() === correct) {
+                    player.scoreStage3 += 30;
+                    player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
+                    player.ws.send(JSON.stringify({ type: 'waiting', message: '正解！次の問題を待ってください' }));
                 } else {
-                    player.answered = true;
-                    player.ws.send(JSON.stringify({
-                        type: 'waiting',
-                        message: '不正解、次の問題をお待ちください...'
-                    }));
+                    player.ws.send(JSON.stringify({ type: 'waiting', message: '不正解！次の問題を待ってください' }));
                 }
+                player.answered = true;
 
-                // 全員回答済みなら次へ
                 if (session.players.every(pl => pl.answered)) {
                     clearInterval(session.questionTimer);
-                    assignScoresStage1();
-                    session.players.forEach(pl => pl.answered = false);
-                    session.answeredPlayers = [];
                     session.questionIndex++;
-
-                    // ★制限時間切れチェックを追加
-                    if (session.timeLeft > 0) {
-                        setTimeout(() => {
-                            if (session.timeLeft > 0) sendNextQuestion();
-                        }, 1000);
-                    }
+                    setTimeout(sendNextQuestion, 1000);
                 }
             };
         });
     }
 
-    // 得点処理
-    function assignScoresStage1() {
-        const scores = [10, 7, 3, 1];
-        for (let i = 0; i < session.answeredPlayers.length; i++) {
-            const p = session.answeredPlayers[i];
-            const score = scores[i] || 1;
-            p.scoreStage1 += score;
-            p.ws.send(JSON.stringify({ type: 'score', score: p.scoreStage1 }));
-        }
-    }
-
-    // セッション開始
+    // 開始
     sendNextQuestion();
 }
+
 
 
 
