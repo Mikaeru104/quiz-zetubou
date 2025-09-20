@@ -491,7 +491,19 @@ function endStage2(session) {
 // ==================================================
 function startStage3(stagePlayers) {
     // コピーした質問配列をセッション内で使う（安全）
-    const stage3Questions = JSON.parse(JSON.stringify(stage3QuestionsTemplate));
+    const copied = JSON.parse(JSON.stringify(stage3QuestionsTemplate));
+
+    // 1問目は固定
+    const firstQuestion = copied[0];
+    // 残りをシャッフル
+    const restQuestions = copied.slice(1);
+    for (let i = restQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [restQuestions[i], restQuestions[j]] = [restQuestions[j], restQuestions[i]];
+    }
+
+    // 新しい配列：1問目 + ランダム残り
+    const stage3Questions = [firstQuestion, ...restQuestions];
 
     const session = {
         players: stagePlayers,
@@ -512,6 +524,7 @@ function startStage3(stagePlayers) {
 
     // ステージ名送信
     session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 })));
+
 
     // 全体タイマー
     session.gameTimer = setInterval(() => {
