@@ -501,10 +501,10 @@ function startStage3(stagePlayers) {
         const j = Math.floor(Math.random() * (i + 1));
         [restQuestions[i], restQuestions[j]] = [restQuestions[j], restQuestions[i]];
     }
-
     // 新しい配列：1問目 + ランダム残り
     const stage3Questions = [firstQuestion, ...restQuestions];
 
+    // セッション作成
     const session = {
         players: stagePlayers,
         questionIndex: 0,
@@ -514,7 +514,7 @@ function startStage3(stagePlayers) {
     };
     stage3Sessions.push(session);
 
-    // 初期化
+    // プレイヤー初期化
     session.players.forEach(p => {
         p.scoreStage3 = 0;
         p.answered = false;
@@ -523,13 +523,16 @@ function startStage3(stagePlayers) {
     });
 
     // ステージ名送信
-    session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 })));
-
+    session.players.forEach(p =>
+        p.ws.send(JSON.stringify({ type: 'stage', name: 'イライラ本', stage: 3 }))
+    );
 
     // 全体タイマー
     session.gameTimer = setInterval(() => {
         session.timeLeft--;
-        session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft: session.timeLeft })));
+        session.players.forEach(p =>
+            p.ws.send(JSON.stringify({ type: 'gameTimer', timeLeft: session.timeLeft }))
+        );
         if (session.timeLeft <= 0) {
             if (session.questionTimer) clearInterval(session.questionTimer);
             clearInterval(session.gameTimer);
@@ -537,18 +540,24 @@ function startStage3(stagePlayers) {
         }
     }, 1000);
 
+    // 次の問題を送信
     function sendNextQuestion() {
         if (session.questionIndex < stage3Questions.length) {
             const q = stage3Questions[session.questionIndex];
-            // reset answered for each player for the new question
+
+            // 各問題ごとに回答状態リセット
             session.players.forEach(p => p.answered = false);
-            // send question with index and per-question time
-            session.players.forEach(p => p.ws.send(JSON.stringify({
-                type: 'question',
-                question: q.question,
-                index: session.questionIndex,
-                timeLeft: 60
-            })));
+
+            // 問題送信
+            session.players.forEach(p =>
+                p.ws.send(JSON.stringify({
+                    type: 'question',
+                    question: q.question,
+                    index: session.questionIndex,
+                    timeLeft: 60
+                }))
+            );
+
             startQuestionTimer();
         } else {
             // 全問終了
@@ -558,13 +567,16 @@ function startStage3(stagePlayers) {
         }
     }
 
+    // 問題ごとのタイマー
     function startQuestionTimer() {
         let qTime = 60;
         if (session.questionTimer) clearInterval(session.questionTimer);
 
         session.questionTimer = setInterval(() => {
             qTime--;
-            session.players.forEach(p => p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime })));
+            session.players.forEach(p =>
+                p.ws.send(JSON.stringify({ type: 'questionTimer', timeLeft: qTime }))
+            );
             if (qTime <= 0) {
                 clearInterval(session.questionTimer);
                 session.questionIndex++;
@@ -572,21 +584,31 @@ function startStage3(stagePlayers) {
             }
         }, 1000);
 
-        // 回答ハンドラはこの質問用に設定
+        // 回答ハンドラを設定（この問題専用）
         session.players.forEach(p => {
             p.handleAnswer = (player, answer) => {
-                if (!player || player.answered) return;
+                if (!player || player.answered) return; // すでに答えてたら無効
+
                 const correct = stage3Questions[session.questionIndex].correctAnswer;
                 if (answer && answer.trim() === correct) {
                     player.scoreStage3 += 30;
-                    player.ws.send(JSON.stringify({ type: 'score', score: player.scoreStage3 }));
-                    player.ws.send(JSON.stringify({ type: 'waiting', message: '正解！次の問題を待ってください' }));
+                    player.ws.send(JSON.stringify({
+                        type: 'score',
+                        score: player.scoreStage3
+                    }));
+                    player.ws.send(JSON.stringify({
+                        type: 'waiting',
+                        message: '正解！次の問題を待ってください'
+                    }));
                 } else {
-                    player.ws.send(JSON.stringify({ type: 'waiting', message: '不正解！次の問題を待ってください' }));
+                    player.ws.send(JSON.stringify({
+                        type: 'waiting',
+                        message: '不正解！次の問題を待ってください'
+                    }));
                 }
                 player.answered = true;
 
-                // 全員が答えたら次の問題へ
+                // 全員が答えたら次へ
                 if (session.players.every(pl => pl.answered)) {
                     clearInterval(session.questionTimer);
                     session.questionIndex++;
