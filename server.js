@@ -47,6 +47,11 @@ const stage3QuestionsTemplate = [
     { question: "「近」と「汁」の乗ってるページの値の差をお答えください", correctAnswer: "614" },
     { question: "「焦」と「扱」の乗ってるページの値の差をお答えください", correctAnswer: "299" },
     { question: "「荷」と「安」の乗ってるページの値の和をお答えください", correctAnswer: "1505" },
+    { question: "「磨」と「出」の乗ってるページの値の差をお答えください", correctAnswer: "821" },
+    { question: "「剣」と「暮」の乗ってるページの値の差をお答えください", correctAnswer: "474" },
+    { question: "「灘」と「鐘」の乗ってるページの値の和をお答えください", correctAnswer: "2250" },
+    { question: "「鳴」と「卑」の乗ってるページの値の和をお答えください", correctAnswer: "1748" },
+    
 ];
 
 const requiredPlayersStage1 = 4;
