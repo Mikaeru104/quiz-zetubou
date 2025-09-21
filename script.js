@@ -1,79 +1,102 @@
-const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+// script.js（修正版） 
 
+let ws;
 let currentStage = 1;
 let currentQuestionIndex = 0;
 
-ws.onopen = () => {
-    console.log('Connected to WebSocket');
-    document.getElementById('waitingMessage').innerText = "サーバー接続成功！";
-};
+// ========================
+// WebSocket接続 & 自動再接続
+// ========================
+function connectWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = location.host; // ポート含む場合も自動
+    ws = new WebSocket(`${protocol}://${host}`);
 
-ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    switch (message.type) {
-        case 'connected':
-            document.getElementById('waitingMessage').innerText = message.message;
-            break;
+    ws.onopen = () => {
+        console.log('Connected to WebSocket');
+        document.getElementById('waitingMessage').innerText = "サーバー接続成功！";
+    };
 
-        case 'question':
-            document.getElementById('question').innerText = `問題: ${message.question}`;
-            document.getElementById('timer').innerText = message.timeLeft || 20;
-            document.getElementById('waitingMessage').innerText = "";
-            if (typeof message.index !== "undefined") currentQuestionIndex = message.index;
-            break;
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        switch (message.type) {
+            case 'connected':
+                document.getElementById('waitingMessage').innerText = message.message;
+                break;
 
-        case 'gameTimer':
-            document.getElementById('gameTimer').innerText = `残り時間: ${message.timeLeft}秒`;
-            break;
+            case 'question':
+                document.getElementById('question').innerText = `問題: ${message.question}`;
+                document.getElementById('timer').innerText = message.timeLeft || 20;
+                document.getElementById('waitingMessage').innerText = "";
+                if (typeof message.index !== "undefined") currentQuestionIndex = message.index;
+                break;
 
-        case 'questionTimer':
-            document.getElementById('timer').innerText = message.timeLeft;
-            break;
+            case 'gameTimer':
+                document.getElementById('gameTimer').innerText = `残り時間: ${message.timeLeft}秒`;
+                break;
 
-        case 'end':
-            document.getElementById('question').innerText = message.message;
-            document.getElementById('timer').innerText = "";
-            document.getElementById('clearBtn').style.display = "none"; // 終了時にクリアボタンを消す
+            case 'questionTimer':
+                document.getElementById('timer').innerText = message.timeLeft;
+                break;
 
-            // ★ 全ステージ共通: クリア失敗した端末は回答ボタンを削除
-            if (message.message.includes("クリアならず")) {
-            document.getElementById('answerBtn').style.display = "none";
-            document.getElementById('answerInput').style.display = "none";
-            }
-            break;
+            case 'end':
+                document.getElementById('question').innerText = message.message;
+                document.getElementById('timer').innerText = "";
+                document.getElementById('clearBtn').style.display = "none"; // 終了時にクリアボタンを消す
 
+                if (message.message.includes("クリアならず")) {
+                    document.getElementById('answerBtn').style.display = "none";
+                    document.getElementById('answerInput').style.display = "none";
+                }
+                break;
 
-        case 'score':
-            document.getElementById('score').innerText = `スコア: ${message.score}`;
-            break;
+            case 'score':
+                document.getElementById('score').innerText = `スコア: ${message.score}`;
+                break;
 
-        case 'waiting':
-            document.getElementById('waitingMessage').innerText = message.message;
-            break;
+            case 'waiting':
+                document.getElementById('waitingMessage').innerText = message.message;
+                break;
 
-        case 'stage':
-            document.querySelector('h1').innerText = message.name;
-            currentStage = message.stage;
-            break;
+            case 'stage':
+                document.querySelector('h1').innerText = message.name;
+                currentStage = message.stage;
+                break;
 
-        case 'unlockStage2':
-            document.getElementById('startBtnStage2').style.display = "inline-block";
-            document.getElementById('startBtn').style.display = "none";
-            break;
+            case 'unlockStage2':
+                document.getElementById('startBtnStage2').style.display = "inline-block";
+                document.getElementById('startBtn').style.display = "none";
+                break;
 
-        case 'unlockStage3':
-            document.getElementById('startBtnStage3').style.display = "inline-block";
-            document.getElementById('startBtnStage2').style.display = "none";
-            break;
+            case 'unlockStage3':
+                document.getElementById('startBtnStage3').style.display = "inline-block";
+                document.getElementById('startBtnStage2').style.display = "none";
+                break;
 
-        case 'showClearButton':
-            document.getElementById('startBtnStage4').style.display = "inline-block";
-            document.getElementById('startBtnStage3').style.display = "none";
-            break;
-    }
-};
+            case 'showClearButton':
+                document.getElementById('startBtnStage4').style.display = "inline-block";
+                document.getElementById('startBtnStage3').style.display = "none";
+                break;
+        }
+    };
 
-// 第一ステージ
+    ws.onclose = () => {
+        console.log("WebSocket切断。3秒後に再接続します...");
+        document.getElementById('waitingMessage').innerText = "サーバー切断。再接続中...";
+        setTimeout(connectWebSocket, 3000); // 3秒後に再接続
+    };
+
+    ws.onerror = (err) => {
+        console.error("WebSocketエラー", err);
+    };
+}
+
+// 初回接続
+connectWebSocket();
+
+// ========================
+// ステージボタン
+// ========================
 document.getElementById('startBtn').addEventListener('click', () => {
     ws.send(JSON.stringify({ type: 'start', stage: 1 }));
     currentStage = 1;
@@ -83,7 +106,6 @@ document.getElementById('startBtn').addEventListener('click', () => {
     document.getElementById('startBtn').style.display = "none";
 });
 
-// 第二ステージ
 document.getElementById('startBtnStage2').addEventListener('click', () => {
     ws.send(JSON.stringify({ type: 'start', stage: 2 }));
     currentStage = 2;
@@ -93,7 +115,6 @@ document.getElementById('startBtnStage2').addEventListener('click', () => {
     document.getElementById('startBtnStage2').style.display = "none";
 });
 
-// 第三ステージ
 document.getElementById('startBtnStage3').addEventListener('click', () => {
     ws.send(JSON.stringify({ type: 'start', stage: 3 }));
     currentStage = 3;
@@ -103,7 +124,6 @@ document.getElementById('startBtnStage3').addEventListener('click', () => {
     document.getElementById('startBtnStage3').style.display = "none";
 });
 
-// 第四ステージ
 document.getElementById('startBtnStage4').addEventListener('click', () => {
     ws.send(JSON.stringify({ type: 'start', stage: 4 }));
     currentStage = 4;
@@ -111,26 +131,31 @@ document.getElementById('startBtnStage4').addEventListener('click', () => {
     document.getElementById('waitingMessage').innerText = "準備中...";
     document.getElementById('question').innerText = "絶棒開始...";
     document.getElementById('startBtnStage4').style.display = "none";
-    document.getElementById('clearBtn').style.display = "inline-block"; // ★クリアボタン表示
+    document.getElementById('clearBtn').style.display = "inline-block";
 });
 
+// ========================
 // クリアボタン
+// ========================
 document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({ type: 'answer', answer: "CLEAR", stage: currentStage }));
-    document.getElementById('clearBtn').style.display = "none"; // 押したら非表示
+    document.getElementById('clearBtn').style.display = "none";
 });
 
+// ========================
 // 回答ボタン
+// ========================
 document.getElementById('answerBtn').addEventListener('click', () => {
-    const answer = document.getElementById('answerInput').value;
+    const answer = document.getElementById('answerInput').value.trim();
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         alert('WebSocket未接続です');
         return;
     }
 
-    // ★ 追加機能：第四ステージクリア後に「1025」と入力で証書ページへ
-    if (currentStage === 4 && answer.trim() === "1025") {
-        window.location.href = "絶望の砦＿脱出証.png"; // 送ってくれた画像のファイル名に合わせてください
+    // 第四ステージクリア後に「1025」入力で証書ページへ
+    if (currentStage === 4 && answer === "1025") {
+        window.location.href = "絶望の砦＿脱出証.png";
         return;
     }
 
@@ -142,6 +167,3 @@ document.getElementById('answerBtn').addEventListener('click', () => {
     }));
     document.getElementById('answerInput').value = "";
 });
-
-
- 
