@@ -1,34 +1,13 @@
-// ==================================================
-// server.js (HTTPS + WSS対応版)
-// ==================================================
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
-const https = require('https');
+const http = require('http');
 const WebSocket = require('ws');
+const path = require('path');
 
 const app = express();
-
-// =====================
-// SSL証明書
-// 開発用は自己署名でも可
-// 本番環境では正式証明書推奨
-// =====================
-const options = {
-    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
-};
-
-// =====================
-// HTTPSサーバー
-// =====================
-const server = https.createServer(options, app);
-app.use(express.static(path.join(__dirname)));
-
-// =====================
-// WSSサーバー
-// =====================
+const server = http.createServer(app); // HTTPサーバー
 const wss = new WebSocket.Server({ server });
+
+app.use(express.static(path.join(__dirname)));
 
 // =====================
 // プレイヤー・ステージデータ
