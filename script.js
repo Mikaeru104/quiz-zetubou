@@ -90,7 +90,7 @@ function connectWebSocket() {
         console.error("WebSocketエラー", err);
     };
 }
-
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
 // 初回接続
 connectWebSocket();
 
