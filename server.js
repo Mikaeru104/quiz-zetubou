@@ -517,7 +517,7 @@ function startStage3(stagePlayers) {
     const session = {
         players: stagePlayers,
         questionIndex: 0,
-        timeLeft: 150,
+        timeLeft: 180,
         gameTimer: null,
         questionTimer: null
     };
@@ -564,7 +564,7 @@ function startStage3(stagePlayers) {
                     type: 'question',
                     question: q.question,
                     index: qIndex,
-                    timeLeft: 50
+                    timeLeft: 60
                 }))
             );
 
@@ -579,7 +579,7 @@ function startStage3(stagePlayers) {
 
     // 問題ごとのタイマー
     function startQuestionTimer(qIndex) {
-        let qTime = 50;
+        let qTime = 60;
         if (session.questionTimer) clearInterval(session.questionTimer);
 
         session.questionTimer = setInterval(() => {
