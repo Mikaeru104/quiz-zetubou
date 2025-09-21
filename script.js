@@ -1,5 +1,5 @@
 // script.js（修正版） 
-
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
 let ws;
 let currentStage = 1;
 let currentQuestionIndex = 0;
